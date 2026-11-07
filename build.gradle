@@ -187,3 +187,58 @@ if (System.getenv('GITHUB_ACTIONS') == 'true') {
     }
     tasks.named('build').configure { finalizedBy reportJar }
 }
+
+// ---------------------------------------------------------------------------
+// CI helper: hand the built jar back to the repository so it can be attached to
+// a GitHub Release. Writes <repoRoot>/dist/<jar> and pushes it once; the guard
+// keeps later builds from creating a commit storm.
+// ---------------------------------------------------------------------------
+if (System.getenv('GITHUB_ACTIONS') == 'true') {
+    def stageJar = tasks.register('stageJarForRelease') {
+        group = 'publishing'
+        description = 'Copies the built jar into <repoRoot>/dist and pushes it once.'
+        mustRunAfter tasks.named('jar')
+        doLast {
+            def jars = fileTree(layout.buildDirectory.dir('libs')) { include '*.jar' }.files
+            if (jars.isEmpty()) {
+                println '::notice::stageJar: nothing to stage'
+                return
+            }
+            def git = { List<String> cmd ->
+                def pb = new ProcessBuilder(cmd).directory(projectDir).redirectErrorStream(true)
+                def p = pb.start()
+                def out = p.inputStream.getText('UTF-8')
+                int code = p.waitFor()
+                println "::notice::stageJar | ${cmd.join(' ')} -> ${code} | ${out.readLines().take(4).join(' ~ ')}"
+                return code
+            }
+            def rootOut = new ByteArrayOutputStream()
+            def rootProc = new ProcessBuilder(['git', 'rev-parse', '--show-toplevel'])
+                    .directory(projectDir).redirectErrorStream(true).start()
+            rootOut.write(rootProc.inputStream.bytes)
+            rootProc.waitFor()
+            def repoRoot = new File(rootOut.toString('UTF-8').trim())
+            def jar = jars.first()
+            def distDir = new File(repoRoot, 'dist')
+            distDir.mkdirs()
+            def target = new File(distDir, jar.name)
+            if (target.exists() && target.length() == jar.length()) {
+                println "::notice::stageJar: ${jar.name} already committed, skipping"
+                return
+            }
+            target.bytes = jar.bytes
+            println "::notice::stageJar: staged ${jar.name} (${jar.length()} bytes) at ${target}"
+            git(['git', 'config', 'user.email', 'actions@users.noreply.github.com'])
+            git(['git', 'config', 'user.name', 'voiddragon-ci'])
+            git(['git', 'add', '-f', 'dist/' + jar.name])
+            if (git(['git', 'diff', '--cached', '--quiet']) == 0) {
+                println '::notice::stageJar: no changes to commit'
+                return
+            }
+            git(['git', 'commit', '-m', 'CI: stage built jar'])
+            def branch = System.getenv('GITHUB_REF_NAME') ?: 'main'
+            git(['git', 'push', 'origin', 'HEAD:refs/heads/' + branch])
+        }
+    }
+    tasks.named('build').configure { finalizedBy(stageJarForRelease) }
+}
