@@ -10,22 +10,23 @@ package com.voiddragon.entity;
  * renderer and the language file can never disagree about the progression.</p>
  *
  * <p>Size is a relative render/box multiplier. 1.0 is the "adult" baseline that
- * the model is authored at (about 3 blocks tall, 7 blocks nose to tail). The
- * Dragon God is deliberately enormous — roughly a village across - and is
- * intended to be tamed by a player who has played a long time and killed a lot
- * of dragons, so the player-facing size slider exists for exactly that case.</p>
+ * the model is authored at (about 7 blocks tall at the head, 16 blocks nose to
+ * tail). Even the adult is deliberately far larger than a vanilla Ender Dragon;
+ * the Dragon God is a different order of magnitude again — several villages
+ * across — and is intended for a player who has spent a very long time raising
+ * one dragon, so the player-facing size slider exists for exactly that case.</p>
  */
 public enum DragonStage {
     /** نوزاد - a hatchling: small, fragile, curious. */
-    INFANT("infant", 0, 0.30F, 60.0D, 5.0D, 2.0D, 0),
+    INFANT("infant", 0, 0.26F, 60.0D, 5.0D, 2.0D, 0),
     /** جوان - juvenile: still growing, fast, can be ridden but cannot fly. */
-    JUVENILE("juvenile", 18, 0.55F, 140.0D, 11.0D, 5.0D, 1),
+    JUVENILE("juvenile", 18, 0.48F, 140.0D, 11.0D, 5.0D, 1),
     /** بالغ - adult: the classic dragon. Flight unlocks here. */
-    ADULT("adult", 48, 0.80F, 300.0D, 20.0D, 9.0D, 2),
+    ADULT("adult", 48, 0.72F, 300.0D, 20.0D, 9.0D, 2),
     /** پادشاه اژدهایان - King of Dragons, semi-divine. */
-    KING("king", 110, 1.15F, 520.0D, 32.0D, 14.0D, 3),
+    KING("king", 110, 1.05F, 520.0D, 32.0D, 14.0D, 3),
     /** خدای اژدهایان - Dragon God, the final stage. */
-    GOD("god", 240, 2.60F, 900.0D, 50.0D, 20.0D, 4);
+    GOD("god", 240, 2.30F, 900.0D, 50.0D, 20.0D, 4);
 
     public final String key;
     /** Growth points that must be earned to reach this stage. */

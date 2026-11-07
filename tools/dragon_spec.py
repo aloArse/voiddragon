@@ -65,6 +65,10 @@ def _neck_parts():
         local = ab - (prev_abs if i > 1 else 0.0)
         out.append(P(f"neck{i}", parent, (*pivot, local, 0.0, 0.0),
                      (-w / 2, -h / 2, -length * 1.16, w, h, length * 1.22), "hide", anim=True))
+        # a spine fin on the crest of every neck segment, leaning back along the neck
+        out.append(P(f"neck{i}_spine", f"neck{i}",
+                     (0.0, h / 2 - 0.6, -length * 0.55, 0.62, 0.0, 0.0),
+                     (-0.5, 0.0, -1.3, 1.0, 3.4, 1.6), "blade"))
         parent = f"neck{i}"
         prev_abs = ab
     return out
@@ -100,7 +104,7 @@ def _wings():
         m = sgn < 0
         # shoulder joint: the arm lifts above the back and opens outward
         out.append(P(f"wing_{side}", "body",
-                     (sgn * 6.0, 6.4, -7.2, 0.16, sgn * -0.42, sgn * 0.62),
+                     (sgn * 6.0, 2.6, -7.2, -0.2, sgn * -0.55, sgn * 1.35),
                      (0.0, -2.1, -2.4, ARM_LEN, 4.2, 4.8), "hide", anim=True, mirror=m))
         # deltoid mass so the shoulder is not a bare stick
         out.append(P(f"wing_{side}_deltoid", f"wing_{side}",
@@ -108,11 +112,11 @@ def _wings():
                      (0.0, -2.6, -1.8, 6.4, 5.6, 5.6), "hide", mirror=m))
         # elbow -> wrist
         out.append(P(f"wing_{side}_fore", f"wing_{side}",
-                     (sgn * ARM_LEN, 0.0, 0.0, -0.22, sgn * -0.16, sgn * -0.18),
+                     (sgn * ARM_LEN, 0.0, 0.0, 0.4, sgn * 0.3, sgn * -1.05),
                      (0.0, -1.6, -1.8, FORE_LEN, 3.2, 3.6), "hide", anim=True, mirror=m))
         # wrist / hand: everything below fans from this one point
         out.append(P(f"wing_{side}_hand", f"wing_{side}_fore",
-                     (sgn * FORE_LEN, 0.0, 0.0, 0.0, 0.0, 0.0),
+                     (sgn * FORE_LEN, 0.0, 0.0, 0.35, sgn * 0.0, sgn * 0.35),
                      None, "pivot", anim=True, mirror=m))
         out.append(P(f"wing_{side}_claw", f"wing_{side}_hand",
                      (0.0, 0.9, -0.6, -0.55, 0.0, 0.0),
@@ -189,11 +193,11 @@ _BODY_PARTS = [
 
     # ---------------------------------------------------------------- tail
     # leans down out of the hips, then flattens and lifts into the spade
-    P("tail1", "body", (0.0, -1.6, 13.4, -0.12, 0.0, 0.0), (-3.6, -3.6, 0.0, 7.2, 7.2, 8.4), "hide", anim=True),
+    P("tail1", "body", (0.0, -1.9, 13.0, -0.16, 0.0, 0.0), (-2.9, -2.9, 0.0, 5.8, 5.8, 9.6), "hide", anim=True),
     P("tail1_spike", "tail1", (0.0, -3.3, 2.2, 0.0, 0.0, 0.0), (-0.6, -2.8, -2.4, 1.2, 3.0, 5.6), "blade"),
-    P("tail2", "tail1", (0.0, -0.2, 8.4, -0.03, 0.0, 0.0), (-3.0, -3.0, 0.0, 6.0, 6.0, 8.4), "hide", anim=True),
+    P("tail2", "tail1", (0.0, -0.2, 9.6, -0.02, 0.0, 0.0), (-2.4, -2.4, 0.0, 4.8, 4.8, 9.2), "hide", anim=True),
     P("tail2_spike", "tail2", (0.0, -2.8, 2.2, 0.0, 0.0, 0.0), (-0.55, -2.6, -2.2, 1.1, 2.8, 5.2), "blade"),
-    P("tail3", "tail2", (0.0, -0.1, 8.4, 0.05, 0.0, 0.0), (-2.5, -2.5, 0.0, 5.0, 5.0, 8.4), "hide", anim=True),
+    P("tail3", "tail2", (0.0, -0.1, 9.2, 0.04, 0.0, 0.0), (-2.0, -2.0, 0.0, 4.0, 4.0, 9.0), "hide", anim=True),
     P("tail3_spike", "tail3", (0.0, -2.3, 2.2, 0.0, 0.0, 0.0), (-0.5, -2.4, -2.0, 1.0, 2.6, 4.8), "blade"),
     P("tail4", "tail3", (0.0, 0.0, 8.4, 0.10, 0.0, 0.0), (-2.0, -2.0, 0.0, 4.0, 4.0, 8.4), "hide", anim=True),
     P("tail4_spike", "tail4", (0.0, -1.8, 2.2, 0.0, 0.0, 0.0), (-0.45, -2.0, -1.8, 0.9, 2.2, 4.4), "blade"),
@@ -234,6 +238,17 @@ _BODY_PARTS = [
       (-0.30, -1.1, -1.0, 0.60, 1.1, 6.0), "tooth"),
     P("teeth_r", "muzzle", (-2.0, -1.9, -4.4, 0.0, 0.0, 0.0),
       (-0.30, -1.1, -1.0, 0.60, 1.1, 6.0), "tooth", mirror=True),
+    # jaw muscle and cheek ridge -- the two shapes that give a skull its cheeks
+    P("jaw_muscle_l", "head", (3.5, -1.4, -4.0, 0.0, 0.0, 0.18),
+      (-0.7, -1.8, -3.6, 1.4, 3.6, 7.2), "skull"),
+    P("jaw_muscle_r", "head", (-3.5, -1.4, -4.0, 0.0, 0.0, -0.18),
+      (-0.7, -1.8, -3.6, 1.4, 3.6, 7.2), "skull", mirror=True),
+    P("cheek_ridge_l", "head", (4.2, 0.4, -6.6, 0.0, -0.22, -0.55),
+      (-0.4, -0.4, -1.2, 0.8, 0.8, 5.0), "blade"),
+    P("cheek_ridge_r", "head", (-4.2, 0.4, -6.6, 0.0, 0.22, 0.55),
+      (-0.4, -0.4, -1.2, 0.8, 0.8, 5.0), "blade", mirror=True),
+    P("chin", "jaw", (0.0, 0.2, -12.4, 0.10, 0.0, 0.0),
+      (-1.6, -0.8, -1.4, 3.2, 1.0, 1.4), "jaw"),
     # eyes: small, deep-set, under a heavy brow that casts a shadow
     P("brow_l", "head", (3.1, 1.7, -5.4, 0.0, 0.0, -0.34),
       (-1.1, -0.7, -4.4, 2.2, 1.4, 7.0), "skull"),
@@ -252,14 +267,14 @@ _BODY_PARTS = [
 
     # ---------------------------------------------------------------- front legs
     # digitigrade: thigh forward, shin back, foot forward, three gripping talons
-    P("leg_fl_thigh", "body", (5.4, -4.4, -8.4, 0.16, 0.0, 0.0), (-1.7, -10.0, -2.6, 3.4, 11.0, 5.6), "hide", anim=True),
-    P("leg_fl_shin", "leg_fl_thigh", (0.0, -10.0, 0.3, -0.30, 0.0, 0.0), (-1.3, -9.4, -1.6, 2.6, 9.4, 3.2), "hide", anim=True),
-    P("leg_fl_foot", "leg_fl_shin", (0.0, -9.4, -0.2, 0.22, 0.0, 0.0), (-1.7, -1.3, -3.4, 3.4, 2.3, 4.8), "foot", anim=True),
+    P("leg_fl_thigh", "body", (5.9, -4.4, -8.4, 0.16, 0.0, 0.0), (-2.2, -10.4, -3.0, 4.4, 11.4, 6.4), "hide", anim=True),
+    P("leg_fl_shin", "leg_fl_thigh", (0.0, -10.0, 0.3, -0.30, 0.0, 0.0), (-1.7, -9.8, -2.1, 3.4, 9.8, 4.2), "hide", anim=True),
+    P("leg_fl_foot", "leg_fl_shin", (0.0, -9.4, -0.2, 0.22, 0.0, 0.0), (-2.1, -1.5, -3.8, 4.2, 2.6, 5.4), "foot", anim=True),
     P("leg_fl_talon1", "leg_fl_foot", (1.5, -1.1, -3.1, 0.55, 0.0, 0.0), (-0.42, -0.9, -1.5, 0.84, 1.0, 2.0), "claw"),
     P("leg_fl_talon2", "leg_fl_foot", (0.0, -1.1, -3.1, 0.55, 0.0, 0.0), (-0.42, -0.9, -1.7, 0.84, 1.0, 2.2), "claw"),
     P("leg_fl_talon3", "leg_fl_foot", (-1.5, -1.1, -3.1, 0.55, 0.0, 0.0), (-0.42, -0.9, -1.5, 0.84, 1.0, 2.0), "claw"),
 
-    P("leg_fr_thigh", "body", (-5.4, -4.4, -8.4, 0.16, 0.0, 0.0), (-1.7, -10.0, -2.6, 3.4, 11.0, 5.6), "hide", anim=True, mirror=True),
+    P("leg_fr_thigh", "body", (-5.9, -4.4, -8.4, 0.16, 0.0, 0.0), (-1.7, -10.0, -2.6, 3.4, 11.0, 5.6), "hide", anim=True, mirror=True),
     P("leg_fr_shin", "leg_fr_thigh", (0.0, -10.0, 0.3, -0.30, 0.0, 0.0), (-1.3, -9.4, -1.6, 2.6, 9.4, 3.2), "hide", anim=True, mirror=True),
     P("leg_fr_foot", "leg_fr_shin", (0.0, -9.4, -0.2, 0.22, 0.0, 0.0), (-1.7, -1.3, -3.4, 3.4, 2.3, 4.8), "foot", anim=True, mirror=True),
     P("leg_fr_talon1", "leg_fr_foot", (1.5, -1.1, -3.1, 0.55, 0.0, 0.0), (-0.42, -0.9, -1.5, 0.84, 1.0, 2.0), "claw", mirror=True),
@@ -268,14 +283,14 @@ _BODY_PARTS = [
 
     # ---------------------------------------------------------------- hind legs
     # powerful haunches, longer than the arms, back-swept hock
-    P("leg_bl_thigh", "body", (5.6, -4.2, 9.6, -0.34, 0.0, 0.0), (-2.8, -11.6, -3.0, 5.6, 12.6, 7.6), "hide", anim=True),
-    P("leg_bl_shin", "leg_bl_thigh", (0.0, -11.6, 0.0, 0.66, 0.0, 0.0), (-1.6, -9.8, -2.0, 3.2, 9.8, 4.2), "hide", anim=True),
-    P("leg_bl_foot", "leg_bl_shin", (0.0, -9.5, -0.3, -0.32, 0.0, 0.0), (-2.6, -1.5, -4.0, 5.2, 2.5, 6.0), "foot", anim=True),
+    P("leg_bl_thigh", "body", (6.4, -4.2, 9.6, -0.34, 0.0, 0.0), (-3.3, -12.0, -3.4, 6.6, 13.0, 8.4), "hide", anim=True),
+    P("leg_bl_shin", "leg_bl_thigh", (0.0, -11.6, 0.0, 0.66, 0.0, 0.0), (-2.1, -10.2, -2.5, 4.2, 10.2, 5.0), "hide", anim=True),
+    P("leg_bl_foot", "leg_bl_shin", (0.0, -9.5, -0.3, -0.32, 0.0, 0.0), (-3.0, -1.7, -4.4, 6.0, 2.9, 6.8), "foot", anim=True),
     P("leg_bl_talon1", "leg_bl_foot", (1.7, -1.2, -3.5, 0.55, 0.0, 0.0), (-0.46, -1.0, -1.7, 0.92, 1.1, 2.2), "claw"),
     P("leg_bl_talon2", "leg_bl_foot", (0.0, -1.2, -3.5, 0.55, 0.0, 0.0), (-0.46, -1.0, -1.9, 0.92, 1.1, 2.4), "claw"),
     P("leg_bl_talon3", "leg_bl_foot", (-1.7, -1.2, -3.5, 0.55, 0.0, 0.0), (-0.46, -1.0, -1.7, 0.92, 1.1, 2.2), "claw"),
 
-    P("leg_br_thigh", "body", (-5.6, -4.2, 9.6, -0.34, 0.0, 0.0), (-2.8, -11.6, -3.0, 5.6, 12.6, 7.6), "hide", anim=True, mirror=True),
+    P("leg_br_thigh", "body", (-6.4, -4.2, 9.6, -0.34, 0.0, 0.0), (-2.8, -11.6, -3.0, 5.6, 12.6, 7.6), "hide", anim=True, mirror=True),
     P("leg_br_shin", "leg_br_thigh", (0.0, -11.6, 0.0, 0.66, 0.0, 0.0), (-1.6, -9.8, -2.0, 3.2, 9.8, 4.2), "hide", anim=True, mirror=True),
     P("leg_br_foot", "leg_br_shin", (0.0, -9.5, -0.3, -0.32, 0.0, 0.0), (-2.6, -1.5, -4.0, 5.2, 2.5, 6.0), "foot", anim=True, mirror=True),
     P("leg_br_talon1", "leg_br_foot", (1.7, -1.2, -3.5, 0.55, 0.0, 0.0), (-0.46, -1.0, -1.7, 0.92, 1.1, 2.2), "claw", mirror=True),

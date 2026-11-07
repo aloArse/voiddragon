@@ -150,7 +150,13 @@ class Canvas:
 
     # -- procedural brushes
     def scales(self, rect, base, hi, dark, factor=1.0, cw=9, ch=7, seed_shift=0):
-        """Overlapping rounded scales: dark seams, per-scale value jitter, lit crown."""
+        """Large overlapping plates.
+
+        A dragon hide reads at gameplay distance because the plates are big and
+        calm, not because every texel is noisy. Each plate gets one flat tone from
+        a small palette, a lit top lip and a dark seam, which keeps the surface
+        legible even when the whole texture is 40 px wide on screen.
+        """
         x, y, w, h = rect
         if w <= 0 or h <= 0:
             return
@@ -159,26 +165,21 @@ class Canvas:
         col = (xx + (cw // 2) * (row % 2)) // cw
         u = (xx + (cw // 2) * (row % 2)) % cw
         v = yy % ch
-        dx = (u - cw / 2.0) / (cw / 2.0)
-        dy = (v - ch * 0.62) / (ch / 2.0)
-        d = (dx * dx) * 0.85 + (dy * dy)
-        # deterministic per-scale brightness so no two scales match
-        hv = (row * 73 + col * 151 + seed_shift * 17) % 23
-        jit = 0.90 + hv / 23.0 * 0.22
-        base_c = np.array(shade(base, factor), dtype=np.float32)[None, None, :] * jit[..., None]
-        hi_c = np.array(shade(hi, factor), dtype=np.float32)[None, None, :] * jit[..., None]
+        # only 4 tones, chosen per plate -- flat facets instead of gradients
+        hv = (row * 31 + col * 57 + seed_shift * 13) % 4
+        tones = np.array([0.86, 1.00, 1.10, 0.94], dtype=np.float32)[hv]
+        base_c = np.array(shade(base, factor), dtype=np.float32)[None, None, :]
+        hi_c = np.array(shade(hi, factor), dtype=np.float32)[None, None, :]
         dark_c = np.array(shade(dark, factor), dtype=np.float32)
-        shell = np.empty((h, w, 3), dtype=np.float32)
-        shell[:] = dark_c
-        body_mask = d <= 1.06
-        shell[body_mask] = (base_c * 0.92)[body_mask]
-        shell[d <= 0.72] = base_c[d <= 0.72]
-        m2 = d <= 0.34
-        shell[m2] = (base_c * 0.55 + hi_c * 0.45)[m2]
-        m3 = (d <= 0.86) & (dy > 0.38)
-        shell[m3] = (hi_c * 0.55 + base_c * 0.45)[m3]
-        shell += self.nprng.integers(-3, 4, size=(h, w, 1)).astype(np.float32)
-        self.rgb[y:y + h, x:x + w] = shell
+        reg = base_c * tones[..., None]
+        # lit upper lip and hard dark seam at the bottom of each plate
+        reg[v <= 1] = hi_c * tones[..., None][v <= 1]
+        reg[v >= ch - 1] = dark_c
+        reg[u >= cw - 1] = dark_c
+        # a single soft highlight in the middle of the plate
+        mid = (((u - cw * 0.45) / (cw * 0.42)) ** 2 + ((v - ch * 0.45) / (ch * 0.5)) ** 2) < 0.55
+        reg[mid] = (base_c * (tones[..., None] + 0.14))[mid]
+        self.rgb[y:y + h, x:x + w] = np.clip(reg, 0, 255)
         self.a[y:y + h, x:x + w] = 1.0
 
     def cracks(self, rect, glow, factor=1.0, density=0.16, seed=0):
@@ -302,7 +303,8 @@ class Canvas:
 def paint_hide(cv, glow, part, rects, face, rng, armoured=False):
     rect = rects[face]
     f = FACE_TINT[face]
-    cv.scales(rect, HIDE, HIDE_HI, EDGE_DARK, f, cw=20, ch=16)
+    rx, ry, rw, rh = rect
+    cv.scales(rect, HIDE, HIDE_HI, EDGE_DARK, f, cw=max(10, rw // 3), ch=max(8, rh // 4))
     if face == "top":
         # spine groove with glowing crack down the middle
         x, y, w, h = rect
@@ -315,11 +317,8 @@ def paint_hide(cv, glow, part, rects, face, rng, armoured=False):
         # underside stays dark: only the plated belly strips are light
         cv.scales(rect, mix(HIDE, BELLY, 0.22), mix(HIDE_MID, BELLY, 0.30), EDGE_DARK,
                   f, cw=16, ch=8)
-    # one texel is 1/16 of a block, so fissures must be few and thin or the
-    # whole surface turns into lavender blocks
-    area = rect[2] * rect[3]
-    cv.streaks(rect, glow, f, count=1,
-               seed=hash(part["name"] + face) % 9999)
+    # one single fissure on the biggest faces only, and it glows faintly: the
+    # hide must stay matte or the whole dragon turns into lavender confetti
     cv.ao(rect, 0.70 if face in ("front", "back") else 0.55)
 
 
