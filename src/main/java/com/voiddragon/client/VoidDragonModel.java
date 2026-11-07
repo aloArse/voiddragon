@@ -126,25 +126,6 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
             this.wingRMembrane[i] = wingRHand.getChild("wing_r_m" + (i + 1));
         }
 
-        String[] sides = {"fl", "fr", "bl", "br"};
-        for (int i = 0; i < 4; i++) {
-            ModelPart thigh = body.getChild("leg_" + sides[i] + "_thigh");
-            ModelPart shin = thigh.getChild("leg_" + sides[i] + "_shin");
-            ModelPart foot = shin.getChild("leg_" + sides[i] + "_foot");
-            legs.add(thigh);
-            legs.add(shin);
-            legs.add(foot);
-            this.thighRestX[i] = thigh.xRot;
-            this.shinRestX[i] = shin.xRot;
-            this.footRestX[i] = foot.xRot;
-        }
-
-        for (int i = 0; i < 2; i++) {
-            String hornSide = i == 0 ? "l" : "r";
-            ModelPart horn = head.getChild("horn_" + hornSide + "1");
-            this.horns[i] = horn;
-            this.hornRestX[i] = horn.xRot;
-        }
 
         String[] sides = {"fl", "fr", "bl", "br"};
         for (int i = 0; i < 4; i++) {
