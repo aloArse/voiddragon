@@ -33,7 +33,7 @@ import java.util.List;
 public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
     public static final ModelLayerLocation LAYER =
             new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(VoidDragonMod.MODID, "void_dragon"), "main");
-    public static final int TEXTURE_SIZE = 512;
+    public static final int TEXTURE_SIZE = 1024;
 
     private final ModelPart root;
     private final ModelPart body;
@@ -54,10 +54,16 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
     private final ModelPart spadeTop, spadeBot;
 
     private final ModelPart wingL, wingR, wingLFore, wingRFore;
-    private final ModelPart[] wingLFingers = new ModelPart[3];
-    private final ModelPart[] wingRFingers = new ModelPart[3];
-    private final ModelPart[] wingLMembrane = new ModelPart[4];
-    private final ModelPart[] wingRMembrane = new ModelPart[4];
+    /** Wing finger count; the rig builds one membrane panel per gap between them. */
+    private static final int FINGERS = 5;
+
+    private final ModelPart wingLHand, wingRHand;
+    /** First phalanx of each of the five wing fingers, both sides. */
+    private final ModelPart[] wingLFingers = new ModelPart[FINGERS];
+    private final ModelPart[] wingRFingers = new ModelPart[FINGERS];
+    /** One membrane panel per gap between fingers, plus cove and trailing sail. */
+    private final ModelPart[] wingLMembrane = new ModelPart[FINGERS + 1];
+    private final ModelPart[] wingRMembrane = new ModelPart[FINGERS + 1];
     private final float wingRestZRot, wingRestYRot, wingRestXRot;
     private final float foreRestZRot, foreRestXRot, foreRestYRot;
 
@@ -109,13 +115,15 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         this.foreRestZRot = wingLFore.zRot;
         this.foreRestXRot = wingLFore.xRot;
         this.foreRestYRot = wingLFore.yRot;
-        for (int i = 0; i < 3; i++) {
-            this.wingLFingers[i] = wingLFore.getChild("wing_l_f" + (i + 1));
-            this.wingRFingers[i] = wingRFore.getChild("wing_r_f" + (i + 1));
+        this.wingLHand = wingLFore.getChild("wing_l_hand");
+        this.wingRHand = wingRFore.getChild("wing_r_hand");
+        for (int i = 0; i < FINGERS; i++) {
+            this.wingLFingers[i] = wingLHand.getChild("wing_l_f" + (i + 1) + "a");
+            this.wingRFingers[i] = wingRHand.getChild("wing_r_f" + (i + 1) + "a");
         }
-        for (int i = 0; i < 4; i++) {
-            this.wingLMembrane[i] = wingLFore.getChild("wing_l_m" + (i + 1));
-            this.wingRMembrane[i] = wingRFore.getChild("wing_r_m" + (i + 1));
+        for (int i = 0; i < FINGERS + 1; i++) {
+            this.wingLMembrane[i] = wingLHand.getChild("wing_l_m" + (i + 1));
+            this.wingRMembrane[i] = wingRHand.getChild("wing_r_m" + (i + 1));
         }
 
         String[] sides = {"fl", "fr", "bl", "br"};
@@ -281,7 +289,7 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         wingRFore.yRot = -wingLFore.yRot;
         wingRFore.zRot = -wingLFore.zRot;
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < FINGERS + 1; i++) {
             wingLMembrane[i].zRot = 0.0F;
             wingRMembrane[i].zRot = 0.0F;
         }
@@ -299,11 +307,13 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         wingLFore.xRot = foreRestXRot;
         wingLFore.zRot = Mth.lerp(fly, foreRestZRot, foreRoll);
         wingLFore.yRot = Mth.lerp(fly, foreRestYRot, -0.26F);
-        for (int i = 0; i < 3; i++) {
-            wingLFingers[i].zRot = -0.05F + flapLag * 0.10F * (1.0F - i * 0.2F);
+        // each finger lags a little more than the one before it, so the fan
+        // opens like cloth being shaken out rather than moving as one plate
+        for (int i = 0; i < FINGERS; i++) {
+            wingLFingers[i].zRot = -0.04F * i + flapLag * 0.09F * (1.0F - i * 0.12F);
         }
-        for (int i = 0; i < 4; i++) {
-            wingLMembrane[i].zRot = flapLag * 0.06F * (i + 1);
+        for (int i = 0; i < FINGERS + 1; i++) {
+            wingLMembrane[i].zRot = flapLag * 0.05F * (i + 1);
         }
 
         wingR.xRot = wingL.xRot;
@@ -312,10 +322,10 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         wingRFore.xRot = wingLFore.xRot;
         wingRFore.zRot = -wingLFore.zRot;
         wingRFore.yRot = -wingLFore.yRot;
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < FINGERS; i++) {
             wingRFingers[i].zRot = -wingLFingers[i].zRot;
         }
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < FINGERS + 1; i++) {
             wingRMembrane[i].zRot = -wingLMembrane[i].zRot;
         }
     }

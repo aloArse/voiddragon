@@ -249,8 +249,9 @@ def render(yaw_deg, pitch_deg, width=1100, height=760, flying=False, gear=False,
 
     for idx, (cp, uvs, n) in enumerate(cam_quads):
         scr, depth = project(cp)
-        shade = 0.70 + 0.55 * max(0.0, float(np.dot(world_normals[idx], LIGHT)))
-        rim = 0.18 * max(0.0, 1.0 - abs(float(np.dot(world_normals[idx], LIGHT))))
+        # stronger ambient than vanilla so the dark hide still shows its form
+        shade = 0.92 + 0.42 * max(0.0, float(np.dot(world_normals[idx], LIGHT)))
+        rim = 0.26 * max(0.0, 1.0 - abs(float(np.dot(world_normals[idx], LIGHT))))
         tris = [(0, 1, 2), (0, 2, 3)]
         for tri in tris:
             xs = scr[list(tri), 0]

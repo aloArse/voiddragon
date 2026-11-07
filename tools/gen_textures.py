@@ -26,57 +26,64 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from dragon_spec import PARTS, TEXTURE_SIZE  # noqa: E402
+from dragon_spec import PARTS, TEXTURE_SIZE, TEXELS_PER_UNIT  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(ROOT, "src/main/resources/assets/voiddragon/textures")
 UV_FILE = os.path.join(ROOT, "tools/atlas_uv.json")
 
 # ------------------------------------------------------------------- palette
-OBSIDIAN = (23, 18, 31)
-HIDE = (28, 21, 42)
-HIDE_MID = (42, 31, 62)
-HIDE_HI = (68, 47, 104)
-EDGE_DARK = (12, 9, 18)
-CRACK = (120, 58, 178)
-CRACK_HOT = (198, 118, 255)
+OBSIDIAN = (26, 22, 36)
+# Hide: matte blue-black slate, a touch of colour so form reads on a dark model.
+HIDE = (44, 38, 60)
+HIDE_MID = (58, 50, 80)
+HIDE_HI = (96, 86, 128)
+EDGE_DARK = (18, 15, 26)
+CRACK = (104, 62, 150)
+CRACK_HOT = (178, 112, 232)
 
-BELLY = (40, 30, 56)
-BELLY_LINE = (18, 13, 26)
+# Ventral plates: warmer, lighter, clearly a different material.
+BELLY = (86, 76, 104)
+BELLY_LINE = (34, 28, 46)
 
-RIDGE = (52, 30, 82)
-RIDGE_HI = (96, 56, 148)
+# Dorsal ridge / spurs: darker slate to separate them from the hide.
+RIDGE = (34, 28, 48)
+RIDGE_HI = (74, 60, 104)
 
-BLADE = (34, 22, 54)
-BLADE_EDGE = (168, 96, 246)
+# Blades (spurs, crest, spade): dark bone-slate, bright edge.
+BLADE = (52, 44, 68)
+BLADE_EDGE = (176, 112, 250)
 
-MEMBRANE_DEEP = (24, 12, 36)
-MEMBRANE_MID = (46, 24, 68)
-MEMBRANE_VEIN = (150, 84, 214)
+# Wing membrane: the darkest surface on the model, so it can silhouette.
+MEMBRANE_DEEP = (22, 14, 34)
+MEMBRANE_MID = (44, 30, 66)
+MEMBRANE_VEIN = (128, 82, 196)
 
-BONE = (196, 190, 176)
-EYE_GLOW = (206, 148, 255)
-BONE_SHADE = (150, 144, 134)
-BONE_TIP = (236, 232, 222)
+# Bone: pale warm grey. The only light material, which is what sells the horns.
+BONE = (198, 190, 172)
+BONE_SHADE = (146, 138, 124)
+BONE_TIP = (238, 234, 222)
+EYE_GLOW = (212, 158, 255)
 
-SKULL = (26, 19, 38)
-SKULL_PLATE = (40, 29, 58)
-MUZZLE = (30, 22, 44)
-JAW = (22, 16, 32)
+# Skull: same slate as the hide but cooler and with pale plate edges.
+SKULL = (46, 40, 62)
+SKULL_PLATE = (78, 70, 102)
+MUZZLE = (50, 44, 66)
+JAW = (36, 31, 48)
 
-LIMB = (26, 19, 38)
-FOOT = (18, 13, 26)
+LIMB = (40, 35, 54)
+FOOT = (28, 24, 38)
 
 VOID = (168, 92, 255)
 VOID_BRIGHT = (214, 158, 255)
 VOID_PALE = (242, 226, 255)
-EYE_CORE = (236, 206, 255)
+EYE_CORE = (238, 210, 255)
 
-LEATHER = (48, 26, 40)
-LEATHER_HI = (78, 44, 62)
-STEEL = (40, 38, 56)
-STEEL_HI = (92, 88, 120)
-STEEL_DARK = (22, 20, 30)
+LEATHER = (52, 30, 44)
+LEATHER_HI = (84, 50, 68)
+STEEL = (44, 42, 62)
+STEEL_HI = (98, 94, 128)
+STEEL_DARK = (24, 22, 32)
 RUNE = (150, 80, 240)
 
 FACE_TINT = {"top": 1.12, "bottom": 0.66, "front": 1.0, "back": 0.86, "left": 0.82, "right": 0.94}
@@ -216,6 +223,66 @@ class Canvas:
             glow.rgb[y:y + h, x:x + w] = g
             glow.a[y:y + h, x:x + w] = np.where(mask | (glow.a[y:y + h, x:x + w] > 0), 1.0, 0.0)
 
+    def streaks(self, rect, glow, factor=1.0, count=3, seed=0):
+        """Long molten fissures running along the long axis of a face.
+
+        Short random walks read as noise at model scale; fissures that travel a
+        good fraction of the face read as cracked stone.
+        """
+        x, y, w, h = rect
+        if w <= 2 or h <= 1:
+            return
+        rng = random.Random(5000 + seed)
+        horizontal = w >= h
+        span = w if horizontal else h
+        cross = h if horizontal else w
+        mask = np.zeros((h, w), dtype=bool)
+        for _ in range(count):
+            if horizontal:
+                py = rng.uniform(1, max(2, cross - 1))
+                px = rng.uniform(0, span * 0.25)
+            else:
+                px = rng.uniform(1, max(2, cross - 1))
+                py = rng.uniform(0, span * 0.25)
+            ang = 0.0 if horizontal else math.pi / 2
+            length = span * rng.uniform(0.45, 1.0)
+            steps = int(length)
+            for _s in range(steps):
+                ang += rng.uniform(-0.16, 0.16)
+                px += math.cos(ang) * 1.0
+                py += math.sin(ang) * 1.0
+                ix, iy = int(px), int(py)
+                if 0 <= ix < w and 0 <= iy < h:
+                    mask[iy, ix] = True
+                    # occasional side branch
+                    if rng.random() > 0.93:
+                        bx, by = ix, iy
+                        for _b in range(rng.randint(2, max(3, int(cross * 0.5)))):
+                            bx += rng.choice((-1, 1))
+                            by += rng.choice((-1, 0, 1))
+                            if 0 <= bx < w and 0 <= by < h:
+                                mask[by, bx] = True
+                if not (0 <= px < w and 0 <= py < h):
+                    break
+        if not mask.any():
+            return
+        cold = np.array(shade(CRACK, factor), dtype=np.float32)
+        hot = np.array(shade(CRACK_HOT, factor), dtype=np.float32)
+        region = self.rgb[y:y + h, x:x + w]
+        region[mask] = cold
+        core = mask & (self.nprng.random((h, w)) > 0.45)
+        region[core] = hot
+        self.rgb[y:y + h, x:x + w] = region
+        if glow is not None:
+            g = glow.rgb[y:y + h, x:x + w]
+            g[mask] = hot
+            g[core] = np.array(VOID_BRIGHT, dtype=np.float32)
+            glow.rgb[y:y + h, x:x + w] = g
+            ga = glow.a[y:y + h, x:x + w]
+            ga[mask] = 0.30
+            ga[core] = 0.55
+            glow.a[y:y + h, x:x + w] = ga
+
     def ao(self, rect, strength=0.62, depth=4):
         """Darken the bottom rows and brighten the top row of a face."""
         x, y, w, h = rect
@@ -235,7 +302,7 @@ class Canvas:
 def paint_hide(cv, glow, part, rects, face, rng, armoured=False):
     rect = rects[face]
     f = FACE_TINT[face]
-    cv.scales(rect, HIDE, HIDE_HI, EDGE_DARK, f, cw=10, ch=8)
+    cv.scales(rect, HIDE, HIDE_HI, EDGE_DARK, f, cw=20, ch=16)
     if face == "top":
         # spine groove with glowing crack down the middle
         x, y, w, h = rect
@@ -245,22 +312,57 @@ def paint_hide(cv, glow, part, rects, face, rng, armoured=False):
             glow.rgb[y + 2:y + h - 2, mid] = np.array(VOID, dtype=np.float32)
             glow.a[y + 2:y + h - 2, mid] = 1.0
     if face == "bottom":
-        cv.scales(rect, BELLY, mix(BELLY, HIDE_HI, 0.55), BELLY_LINE, f, cw=8, ch=4)
-    cv.cracks(rect, glow, f, density=0.10 if face in ("front", "back") else 0.06,
-              seed=hash(part["name"] + face) % 9999)
+        # underside stays dark: only the plated belly strips are light
+        cv.scales(rect, mix(HIDE, BELLY, 0.22), mix(HIDE_MID, BELLY, 0.30), EDGE_DARK,
+                  f, cw=16, ch=8)
+    # one texel is 1/16 of a block, so fissures must be few and thin or the
+    # whole surface turns into lavender blocks
+    area = rect[2] * rect[3]
+    cv.streaks(rect, glow, f, count=max(1, min(2, area // 900)),
+               seed=hash(part["name"] + face) % 9999)
     cv.ao(rect, 0.70 if face in ("front", "back") else 0.55)
 
 
 def paint_belly(cv, glow, part, rects, face, rng):
+    """Ventral plates: overlapping bone-coloured scutes stacked nose-to-tail.
+
+    They are drawn as rows of rounded plates with a lit upper lip and a dark
+    shadow beneath, so the belly reads as armour rather than stripes.
+    """
     rect = rects[face]
     f = FACE_TINT[face]
     x, y, w, h = rect
-    cv.fill(rect, BELLY, f, noise=5)
-    # horizontal abdominal bars
-    for i in range(1, h, 4):
-        cv.rgb[y + i, x:x + w] = np.array(shade(BELLY_LINE, f), dtype=np.float32)
-        cv.rgb[y + i + 1, x:x + w] = np.array(shade(mix(BELLY, HIDE_MID, 0.5), f), dtype=np.float32)
-    cv.ao(rect, 0.62)
+    if w <= 0 or h <= 0:
+        return
+    yy, xx = np.mgrid[0:h, 0:w]
+    cv.fill(rect, BELLY, f, noise=4)
+    row_h = max(3.0, h / 5.0)
+    chin = np.array(shade(mix(BELLY, BONE, 0.30), f * 1.04), dtype=np.float32)
+    deep = np.array(shade(mix(BELLY, EDGE_DARK, 0.55), f), dtype=np.float32)
+    seam = np.array(shade(BELLY_LINE, f), dtype=np.float32)
+    reg = cv.rgb[y:y + h, x:x + w].copy()
+    v = (yy % row_h) / row_h                      # 0 at the top lip of a plate
+    plate = np.floor(yy / row_h).astype(np.int32)
+    bulge = np.clip(1.0 - v, 0.0, 1.0) ** 1.5
+    reg[:] = deep[None, None, :] + (chin - deep)[None, None, :] * bulge[..., None] * 0.9
+    # staggered vertical seams so plates interlock
+    seam_x = (xx + (plate % 2) * (w / 6.0)) % max(3.0, w / 3.0)
+    reg[seam_x < 0.8] = seam[None, :][: int((seam_x < 0.8).sum())] if False else seam
+    reg[v < 0.09] = chin
+    reg[v > 0.88] = seam
+    reg += cv.nprng.integers(-3, 4, size=(h, w, 1)).astype(np.float32)
+    cv.rgb[y:y + h, x:x + w] = reg
+    cv.a[y:y + h, x:x + w] = 1.0
+    if glow is not None:
+        # a faint violet glow seeps from between the plates
+        g = glow.rgb[y:y + h, x:x + w]
+        ga = glow.a[y:y + h, x:x + w]
+        gap = (v > 0.93)
+        g[gap] = np.array(CRACK_HOT, dtype=np.float32) * 0.35
+        ga[gap] = 0.22
+        glow.rgb[y:y + h, x:x + w] = g
+        glow.a[y:y + h, x:x + w] = ga
+    cv.ao(rect, 0.60)
 
 
 def paint_ridge(cv, glow, part, rects, face, rng):
@@ -310,108 +412,140 @@ def paint_blade(cv, glow, part, rects, face, rng):
 
 
 def paint_membrane(cv, glow, part, rects, face, rng):
-    """Dark tattered leather webbed with molten violet ribs (reference wings)."""
-    rect = rects[face]
+    """Wing leather: near-black violet sheet, lit from the leading edge.
+
+    The wing has to read as *cloth* first and magic second, so the base is a
+    smooth vertical gradient with soft mottling, the structure comes from dark
+    bone ribs fanning out of the wrist, and the molten light is confined to the
+    root third plus a thin seam along the leading edge.
+    """
+    x, y, w, h = rects[face]
+    if w <= 0 or h <= 0:
+        return
     f = FACE_TINT[face]
-    x, y, w, h = rect
-    cv.fill(rect, MEMBRANE_DEEP, f, noise=6)
     yy, xx = np.mgrid[0:h, 0:w]
-    # smoky clouds of lighter membrane
-    for _ in range(6):
+    along = xx / max(1.0, w - 1.0)          # 0 = wrist (root), 1 = wing tip
+    across = yy / max(1.0, h - 1.0)         # 0 = leading edge, 1 = trailing edge
+
+    # smooth gradient: brighter at the root and along the leading edge
+    lum = 1.00 - 0.46 * along - 0.30 * across
+    base = np.array(MEMBRANE_DEEP, dtype=np.float32)[None, None, :]
+    lit = np.array(MEMBRANE_MID, dtype=np.float32)[None, None, :]
+    sheet = base + (lit - base) * np.clip(lum, 0.0, 1.0)[..., None]
+
+    # soft mottled clouds so the leather is not a flat ramp
+    noise = np.zeros((h, w), dtype=np.float32)
+    for _ in range(5):
         cxp, cyp = rng.uniform(0, w), rng.uniform(0, h)
-        rr = rng.uniform(max(3.0, w * 0.15), max(5.0, w * 0.45))
-        blot = ((xx - cxp) ** 2 + (yy - cyp) ** 2) < rr * rr
-        cv.rgb[y:y + h, x:x + w][blot] = np.array(shade(MEMBRANE_MID, f * 0.8), dtype=np.float32)
-    # radiating ribs from the wrist corner (left edge) fanning right: thin veins,
-    # not a fill -- the reference membrane is almost black between the ribs.
-    along = xx / max(1, w - 1)
-    ribs = max(3, min(5, int(h / 4)))
+        rx, ry = rng.uniform(w * 0.12, w * 0.38) + 1.0, rng.uniform(h * 0.18, h * 0.5) + 1.0
+        blob = np.exp(-(((xx - cxp) / rx) ** 2 + ((yy - cyp) / ry) ** 2))
+        noise += blob * rng.uniform(-0.10, 0.14)
+    sheet *= (1.0 + noise)[..., None]
+    sheet *= f
+
+    # dark bone ribs fanning from the wrist through the leather
+    ribs = max(2, int(h / 3))
     for k in range(ribs):
-        base_y = (k + 0.5) * h / float(ribs)
-        line = np.abs((yy - (base_y + (along - 0.5) * (h * 0.22))) % (h / float(ribs)))
-        line = np.minimum(line, (h / float(ribs)) - line)
-        mask = (line < 0.62) & (along > 0.04)
+        c = (k + 0.5) * h / ribs
+        spread = (along - 0.4) * (h * 0.55)
+        dist = np.abs(yy - (c + spread))
+        rib = np.clip(1.0 - dist / 0.95, 0.0, 1.0)
+        shade_v = 0.40 + 0.25 * along
+        sheet *= (1.0 - 0.55 * rib * shade_v)[..., None]
+
+    # leading edge: a taut pale seam of bone
+    edge = np.clip(1.0 - across / 1.5, 0.0, 1.0)
+    seam = np.array(MEMBRANE_VEIN, dtype=np.float32)[None, None, :] * 0.42
+    sheet = sheet * (1.0 - edge[..., None] * 0.5) + seam * edge[..., None] * 0.5
+
+    # molten cracks: only in the root third, thin and irregular
+    root = along < 0.34
+    crack = np.zeros((h, w), dtype=np.float32)
+    for _ in range(4):
+        px = rng.uniform(0, w * 0.32)
+        py = rng.uniform(0, h)
+        ang = rng.uniform(-0.9, 0.9)
+        for _s in range(int(max(4, w * 0.3))):
+            px += math.cos(ang) * 0.8
+            py += math.sin(ang) * 0.8
+            ang += rng.uniform(-0.30, 0.30)
+            ix, iy = int(px), int(py)
+            if 0 <= ix < w and 0 <= iy < h and root[min(iy, h - 1), min(ix, w - 1)]:
+                crack[iy, ix] = 1.0
+    cv.rgb[y:y + h, x:x + w] = sheet
+    cv.a[y:y + h, x:x + w] = 1.0
+    hot = np.array(CRACK_HOT, dtype=np.float32)
+    if crack.any():
         reg = cv.rgb[y:y + h, x:x + w]
-        reg[mask] = np.array(shade(MEMBRANE_VEIN, f * 0.72), dtype=np.float32)
+        reg[crack > 0.5] = hot * 0.85
         cv.rgb[y:y + h, x:x + w] = reg
+    if glow is not None:
+        g = glow.rgb[y:y + h, x:x + w]
+        ga = glow.a[y:y + h, x:x + w]
+        g[crack > 0.5] = hot
+        ga[crack > 0.5] = 0.9
+        # faint light bleeding out of the ribs near the root
+        bleed = np.clip(1.0 - along / 0.45, 0.0, 1.0) * 0.10
+        g += hot[None, None, :] * bleed[..., None]
+        ga = np.maximum(ga, bleed)
+        glow.rgb[y:y + h, x:x + w] = g
+        glow.a[y:y + h, x:x + w] = ga
+
+    # ragged trailing edge + a few worn holes towards the tip
+    ragged = (across > 0.94) & (rng.random((h, w)) > 0.82 + 0.14 * along)
+    holes = (rng.random((h, w)) > 0.988) & (across > 0.45) & (along > 0.55)
+    drop = ragged | holes
+    if drop.any():
+        a = cv.a[y:y + h, x:x + w]
+        a[drop] = 0.0
+        cv.a[y:y + h, x:x + w] = a
         if glow is not None:
-            g = glow.rgb[y:y + h, x:x + w]
-            g[mask] = np.array(CRACK_HOT, dtype=np.float32) * 0.85
-            glow.rgb[y:y + h, x:x + w] = g
             ga = glow.a[y:y + h, x:x + w]
-            ga[mask] = 0.85
+            ga[drop] = 0.0
             glow.a[y:y + h, x:x + w] = ga
-    if glow is not None:
-        # scattered motes of light inside the leather, like the reference art
-        mote = (rng.random((h, w)) > 0.965)
-        g = glow.rgb[y:y + h, x:x + w]
-        g[mote] = np.array(CRACK_HOT, dtype=np.float32) * 0.5
-        glow.rgb[y:y + h, x:x + w] = g
-        ga = glow.a[y:y + h, x:x + w]
-        ga[mote] = 0.55
-        glow.a[y:y + h, x:x + w] = ga
-        # faint inner haze along the wrist so the wing glows softly, not flat black
-        haze = (glow.a[y:y + h, x:x + w] < 0.05) & (rng.random((h, w)) > 0.93)
-        g2 = glow.rgb[y:y + h, x:x + w]
-        g2[haze] = np.array(CRACK_HOT, dtype=np.float32) * 0.16
-        glow.rgb[y:y + h, x:x + w] = g2
-        ga[haze] = 0.10
-        glow.a[y:y + h, x:x + w] = ga
-    # bright leading edge
-    edge = xx < max(1, int(w * 0.04))
-    cv.rgb[y:y + h, x:x + w][edge] = np.array(shade(MEMBRANE_VEIN, f * 0.9), dtype=np.float32)
-    if glow is not None:
-        g = glow.rgb[y:y + h, x:x + w]
-        g[edge] = np.array(CRACK_HOT, dtype=np.float32)
-        glow.rgb[y:y + h, x:x + w] = g
-        ga = glow.a[y:y + h, x:x + w]
-        ga[edge] = 0.45
-        glow.a[y:y + h, x:x + w] = ga
-    # torn holes along the trailing edge, plus notches bitten out of the edge
-    holes = ((xx > w * 0.78) & (rng.random((h, w)) > 0.94))
-    for _ in range(2):
-        cxp, cyp = rng.uniform(w * 0.86, w), rng.uniform(0, h)
-        rr = rng.uniform(1.0, 2.0)
-        holes |= ((xx - cxp) ** 2 / 2.2 + (yy - cyp) ** 2) < rr * rr
-    holes &= (xx > w * 0.76)
-    region_a = cv.a[y:y + h, x:x + w]
-    region_a[holes] = 0.0
-    cv.a[y:y + h, x:x + w] = region_a
-    cv.ao(rect, 0.7)
+
+    cv.ao(rects[face], 0.72)
 
 
 def paint_eye(cv, glow, part, rects, face, rng):
-    """A molten violet eye: hot core, darker rim, black vertical slit."""
+    """A molten violet eye: hot core, darker rim, black vertical slit.
+
+    The darkest texel on the whole model is the socket around the iris, so the
+    glow has something to contrast against instead of washing into the cheek.
+    """
     rect = rects[face]
     x, y, w, h = rect
+    if w <= 0 or h <= 0:
+        return
     yy, xx = np.mgrid[0:h, 0:w]
     fy = (yy - (h - 1) / 2.0) / max(1.0, h / 2.0)
     fx = (xx - (w - 1) / 2.0) / max(1.0, w / 2.0)
-    r = np.sqrt(fx * fx * 0.9 + fy * fy * 1.1)
+    r = np.sqrt(fx * fx * 0.92 + fy * fy * 1.08)
     hot = np.array(EYE_CORE, dtype=np.float32)
     mid = np.array(EYE_GLOW, dtype=np.float32)
-    rim = np.array(VOID, dtype=np.float32) * 0.75
+    rim = np.array(VOID, dtype=np.float32) * 0.62
     reg = np.empty((h, w, 3), dtype=np.float32)
-    reg[:] = (14, 6, 22)
-    m1 = r < 1.0
-    m2 = r < 0.78
-    m3 = r < 0.42
+    reg[:] = (7, 3, 12)                      # socket: near black
+    m1 = r < 0.96
+    m2 = r < 0.70
+    m3 = r < 0.36
     reg[m1] = rim
     reg[m2] = mid
     reg[m3] = hot
-    slit = (np.abs(fx) < 0.22) & (r < 0.96)
-    reg[slit] = (18, 4, 30)
+    slit = (np.abs(fx) < 0.20) & (r < 0.92)
+    reg[slit] = (10, 2, 18)
     cv.rgb[y:y + h, x:x + w] = reg
     cv.a[y:y + h, x:x + w] = 1.0
     if glow is not None:
-        g = glow.rgb[y:y + h, x:x + w]
-        g[:] = 0.35 * hot
+        g = np.zeros((h, w, 3), dtype=np.float32)
+        ga = np.zeros((h, w), dtype=np.float32)
         g[m2] = mid
         g[m3] = hot
+        ga[m2] = 0.85
+        ga[m3] = 1.0
+        ga[m1] = 0.55
+        g[m1 & ~m2] = rim
         glow.rgb[y:y + h, x:x + w] = g
-        ga = glow.a[y:y + h, x:x + w]
-        ga[:] = 0.55
-        ga[m1] = 1.0
         glow.a[y:y + h, x:x + w] = ga
 
 
@@ -650,9 +784,9 @@ def build_atlas(armoured=False):
         painter = part["painter"]
         if painter == "pivot":
             continue
-        w = max(1, int(round(box[3])))
-        h = max(1, int(round(box[4])))
-        d = max(1, int(round(box[5])))
+        w = max(1, int(round(box[3] * TEXELS_PER_UNIT)))
+        h = max(1, int(round(box[4] * TEXELS_PER_UNIT)))
+        d = max(1, int(round(box[5] * TEXELS_PER_UNIT)))
         u, v = uv[part["name"]][0], uv[part["name"]][1]
         rects = face_rects(u, v, w, h, d)
         rng = np.random.default_rng(abs(hash(part["name"])) % (2 ** 31))

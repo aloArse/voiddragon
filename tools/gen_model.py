@@ -10,7 +10,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from dragon_spec import PARTS, TEXTURE_SIZE  # noqa: E402
+from dragon_spec import PARTS, TEXTURE_SIZE, TEXELS_PER_UNIT  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 JAVA_OUT = os.path.join(ROOT, "src/main/java/com/voiddragon/client/DragonRig.java")
@@ -27,9 +27,9 @@ def box_size(part):
     if part["box"] is None:
         return 0.0, 0.0, 0.0
     x, y, z, w, h, d = part["box"]
-    return (max(MIN_TEXELS, round(max(0.0, w))),
-            max(MIN_TEXELS, round(max(0.0, h))),
-            max(MIN_TEXELS, round(max(0.0, d))))
+    return (max(MIN_TEXELS, round(max(0.0, w) * TEXELS_PER_UNIT)),
+            max(MIN_TEXELS, round(max(0.0, h) * TEXELS_PER_UNIT)),
+            max(MIN_TEXELS, round(max(0.0, d) * TEXELS_PER_UNIT)))
 
 
 def unwrapped_size(part):

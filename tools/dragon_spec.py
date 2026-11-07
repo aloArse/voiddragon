@@ -40,13 +40,14 @@ def P(name, parent, pose, box, painter, mirror=False, anim=False):
 # first segment leaves the shoulders almost vertically, the rest progressively
 # flatten out, ending horizontal at the skull.
 NECK = [
-    (5.4, 7.0, 8.0, 1.16),
-    (4.8, 6.2, 7.2, 0.68),
-    (4.4, 5.4, 6.4, 0.30),
-    (4.0, 4.8, 5.8, 0.06),
-    (3.6, 4.2, 5.2, -0.10),
+    (5.8, 6.0, 7.2, 1.06),
+    (5.4, 5.2, 6.2, 0.78),
+    (5.0, 4.6, 5.4, 0.56),
+    (4.6, 4.0, 4.8, 0.40),
+    (4.2, 3.6, 4.2, 0.30),
 ]
-HEAD_ANGLE = -0.16
+# the skull is carried level, as a hunting animal holds it, not tipped down
+HEAD_ANGLE = -0.30
 
 
 def _neck_parts():
@@ -55,7 +56,7 @@ def _neck_parts():
     parent = "body"
     prev_abs = 0.0
     # the chain starts here, on top of the chest
-    first_off = (0.0, 5.6, -10.4)
+    first_off = (0.0, 4.6, -9.6)
     for i, (length, w, h, ab) in enumerate(NECK, start=1):
         if i == 1:
             pivot = first_off
@@ -73,53 +74,87 @@ def _neck_parts():
 
 
 # --------------------------------------------------------------------- wings
-# (pivot x on the forearm, yaw sweep, length, width) for the three fingers
+# Anatomy: humerus -> forearm -> hand -> four fingers of two phalanges each.
+# The membrane is generated from the finger table, so the cloth always fills the
+# gaps between the digits and reaches the tips instead of leaving bare rods.
+ARM_LEN = 14.0          # humerus
+FORE_LEN = 15.0         # radius / ulna
+# (yaw, first phalanx, second phalanx, width, curl of the second phalanx)
 FINGERS = [
-    (0.5, 0.02, 21.5, 1.1),
-    (0.5, -0.52, 18.5, 1.0),
-    (0.5, -1.06, 14.5, 0.9),
+    (0.34, 15.0, 12.0, 1.6, 0.10),
+    (0.02, 19.0, 15.0, 1.4, 0.16),
+    (-0.42, 18.0, 14.0, 1.3, 0.22),
+    (-0.86, 14.0, 10.5, 1.1, 0.28),
+    (-1.24, 9.5, 6.5, 0.9, 0.34),
 ]
-# (pivot x, yaw sweep, length, chord, trailing offset, pitch) for membrane panels
-PANELS = [
-    (0.7, -0.12, 20.0, 13.0, 1.0, 0.06),
-    (0.7, -0.60, 17.0, 12.5, 0.6, 0.10),
-    (0.7, -1.06, 13.0, 11.0, 0.3, 0.16),
-    (1.3, 0.50, 15.5, 10.0, -2.4, 0.02),
-]
-ARM_LEN = 15.0
-FORE_LEN = 14.0
+# membrane chord as a fraction of the panel length (deep wing, scalloped tips)
+CHORD = 0.62
 
 
 def _wings():
     """Builds mirrored left/right wings so the two sides can never drift apart.
 
-    Rest pose: the upper arm leaves the shoulder going up and out, the forearm
-    folds down and back, and the fingers fan backwards carrying the membrane.
-    Nothing crosses the spine, so the folded wing can never clip the body.
+    Rest pose: the humerus leaves the shoulder up and out, the forearm angles
+    back, and the fingers fan into a swept fan of membrane with torn scalloped
+    tips -- the silhouette of the reference art rather than a flat plank.
     """
     out = []
     for side, sgn in (("l", 1.0), ("r", -1.0)):
         m = sgn < 0
-        # Rest / display stance: the arm lifts above the shoulder and opens out,
-        # the wrist folds slightly back, and the membrane panels hang below so the
-        # wing reads as a fan of cloth rather than a flat plank.
+        # shoulder joint: the arm lifts above the back and opens outward
         out.append(P(f"wing_{side}", "body",
-                     (sgn * 6.2, 4.6, -7.6, 0.22, sgn * -0.62, sgn * 0.46),
-                     (0.0, -1.9, -2.0, ARM_LEN, 3.8, 4.0), "hide", anim=True, mirror=m))
+                     (sgn * 6.0, 6.4, -7.2, 0.16, sgn * -0.42, sgn * 0.62),
+                     (0.0, -2.1, -2.4, ARM_LEN, 4.2, 4.8), "hide", anim=True, mirror=m))
+        # deltoid mass so the shoulder is not a bare stick
+        out.append(P(f"wing_{side}_deltoid", f"wing_{side}",
+                     (sgn * 0.6, 0.6, -1.6, 0.0, 0.0, 0.0),
+                     (0.0, -2.6, -1.8, 6.4, 5.6, 5.6), "hide", mirror=m))
+        # elbow -> wrist
         out.append(P(f"wing_{side}_fore", f"wing_{side}",
-                     (sgn * ARM_LEN, 0.0, 0.0, -0.42, sgn * -0.30, sgn * -0.16),
-                     (0.0, -1.5, -1.6, FORE_LEN, 3.0, 3.2), "hide", anim=True, mirror=m))
-        out.append(P(f"wing_{side}_claw", f"wing_{side}_fore",
-                     (sgn * FORE_LEN, 0.0, -0.4, -0.80, 0.0, 0.0),
-                     (0.0, -0.7, -0.7, 1.4, 1.4, 5.4), "claw", mirror=m))
-        for i, (px, ang, length, wid) in enumerate(FINGERS, start=1):
-            out.append(P(f"wing_{side}_f{i}", f"wing_{side}_fore",
-                         (sgn * px, 0.0, 0.0, 0.0, sgn * ang, sgn * -0.05 * i),
-                         (0.0, -wid / 2, -wid / 2, length, wid, wid), "wingbone", mirror=m))
-        for i, (px, ang, length, chord, trail, pitch) in enumerate(PANELS, start=1):
-            out.append(P(f"wing_{side}_m{i}", f"wing_{side}_fore",
-                         (sgn * px, 0.0, 0.0, sgn * pitch, sgn * ang, 0.0),
-                         (0.0, -0.30, trail, length, 0.60, chord), "membrane", mirror=m))
+                     (sgn * ARM_LEN, 0.0, 0.0, -0.22, sgn * -0.16, sgn * -0.18),
+                     (0.0, -1.6, -1.8, FORE_LEN, 3.2, 3.6), "hide", anim=True, mirror=m))
+        # wrist / hand: everything below fans from this one point
+        out.append(P(f"wing_{side}_hand", f"wing_{side}_fore",
+                     (sgn * FORE_LEN, 0.0, 0.0, 0.0, 0.0, 0.0),
+                     None, "pivot", anim=True, mirror=m))
+        out.append(P(f"wing_{side}_claw", f"wing_{side}_hand",
+                     (0.0, 0.9, -0.6, -0.55, 0.0, 0.0),
+                     (0.0, -0.8, -0.8, 1.6, 1.6, 5.0), "claw", mirror=m))
+
+        # fingers: two phalanges each, the second curling under so the leading
+        # edge arches instead of running dead straight
+        for i, (ang, seg1, seg2, wid, curl) in enumerate(FINGERS, start=1):
+            out.append(P(f"wing_{side}_f{i}a", f"wing_{side}_hand",
+                         (0.0, 0.0, 0.0, 0.0, sgn * ang, sgn * -0.02 * i),
+                         (0.0, -wid / 2, -wid / 2, seg1, wid, wid), "wingbone", mirror=m))
+            out.append(P(f"wing_{side}_f{i}b", f"wing_{side}_f{i}a",
+                         (sgn * seg1, 0.0, 0.0, curl * sgn, 0.0, 0.0),
+                         (0.0, -wid / 2 * 0.8, -wid / 2 * 0.8, seg2, wid * 0.8, wid * 0.8),
+                         "wingbone", mirror=m))
+        # one claw on the leading digit tip, as on a real bat wing
+        lead1, lead2 = FINGERS[0][1], FINGERS[0][2]
+        out.append(P(f"wing_{side}_tipclaw", f"wing_{side}_f1b",
+                     (sgn * lead2, 0.0, 0.0, 0.0, 0.0, 0.0),
+                     (0.0, -0.45, -0.45, 2.4, 0.9, 0.9), "claw", mirror=m))
+
+        # membrane: one continuous panel per gap between neighbouring digits,
+        # plus a cove in front of the first digit and a sail behind the last one.
+        # Chord is taken from the longer finger of each pair so the cloth reaches
+        # the tips, and the panel is skewed back to follow the sweep of the fan.
+        spans = []
+        for i in range(len(FINGERS) - 1):
+            a_ang, a1, a2 = FINGERS[i][0], FINGERS[i][1], FINGERS[i][2]
+            b_ang, b1, b2 = FINGERS[i + 1][0], FINGERS[i + 1][1], FINGERS[i + 1][2]
+            spans.append(((a_ang + b_ang) * 0.5, min(a1 + a2, b1 + b2) * 0.98,
+                          max(a1 + a2, b1 + b2) * CHORD))
+        spans.append((FINGERS[0][0] + 0.52, (FINGERS[0][1] + FINGERS[0][2]) * 0.66,
+                      (FINGERS[0][1] + FINGERS[0][2]) * CHORD * 0.70))
+        spans.append((FINGERS[-1][0] - 0.50, (FINGERS[-1][1] + FINGERS[-1][2]) * 0.90,
+                      (FINGERS[-1][1] + FINGERS[-1][2]) * CHORD * 0.92))
+        for i, (ang, length, chord) in enumerate(spans, start=1):
+            out.append(P(f"wing_{side}_m{i}", f"wing_{side}_hand",
+                         (0.4, 0.0, -chord * 0.34, 0.0, sgn * ang, sgn * -0.05 * i),
+                         (0.0, -0.28, 0.0, length, 0.56, chord), "membrane", mirror=m))
     return out
 
 
@@ -129,19 +164,19 @@ _BODY_PARTS = [
     P("body", "root", (0.0, BODY_PIVOT_Y, 0.0, 0.0, 0.0, 0.0), None, "pivot", anim=True),
 
     # chest is broad and deep, the waist pinches, the hips flare again
-    P("chest", "body", (0.0, 0.8, -8.6, 0.06, 0.0, 0.0), (-7.8, -6.2, -7.8, 15.6, 12.4, 8.8), "hide"),
-    P("torso", "body", (0.0, 0.0, 0.0, 0.0, 0.0, 0.0), (-6.2, -6.2, -8.8, 12.4, 12.4, 17.6), "hide"),
-    P("waist", "body", (0.0, -0.8, 8.4, -0.05, 0.0, 0.0), (-5.2, -5.0, -3.6, 10.4, 10.0, 7.2), "hide"),
-    P("hips", "body", (0.0, -0.6, 12.6, -0.08, 0.0, 0.0), (-7.0, -6.4, -0.8, 14.0, 12.8, 8.8), "hide"),
+    P("chest", "body", (0.0, 0.9, -8.6, 0.10, 0.0, 0.0), (-6.4, -6.0, -8.0, 12.8, 12.0, 9.0), "hide"),
+    P("torso", "body", (0.0, 0.0, 0.0, 0.0, 0.0, 0.0), (-5.2, -5.8, -9.0, 10.4, 11.6, 18.0), "hide"),
+    P("waist", "body", (0.0, -0.6, 8.4, -0.06, 0.0, 0.0), (-4.0, -4.4, -3.6, 8.0, 8.8, 7.2), "hide"),
+    P("hips", "body", (0.0, -0.5, 12.6, -0.10, 0.0, 0.0), (-5.8, -5.6, -0.8, 11.6, 11.2, 9.0), "hide"),
 
     # ventral plating and the dorsal spine ridge
-    P("belly_chest", "body", (0.0, 1.2, -8.6, 0.06, 0.0, 0.0), (-5.4, -7.4, -7.2, 10.8, 1.5, 8.0), "belly"),
-    P("belly_torso", "body", (0.0, 0.0, 0.0, 0.0, 0.0, 0.0), (-4.8, -7.0, -8.4, 9.6, 1.5, 16.8), "belly"),
-    P("belly_waist", "body", (0.0, -0.8, 8.4, -0.05, 0.0, 0.0), (-4.0, -5.8, -3.4, 8.0, 1.4, 6.8), "belly"),
-    P("belly_hips", "body", (0.0, -0.6, 12.6, -0.08, 0.0, 0.0), (-5.2, -7.2, -0.6, 10.4, 1.5, 8.4), "belly"),
+    P("belly_chest", "body", (0.0, 1.3, -8.6, 0.10, 0.0, 0.0), (-4.4, -7.2, -7.4, 8.8, 1.6, 8.2), "belly"),
+    P("belly_torso", "body", (0.0, 0.0, 0.0, 0.0, 0.0, 0.0), (-3.8, -6.6, -8.6, 7.6, 1.6, 17.2), "belly"),
+    P("belly_waist", "body", (0.0, -0.6, 8.4, -0.06, 0.0, 0.0), (-3.0, -5.2, -3.4, 6.0, 1.4, 6.8), "belly"),
+    P("belly_hips", "body", (0.0, -0.5, 12.6, -0.10, 0.0, 0.0), (-4.2, -6.4, -0.6, 8.4, 1.5, 8.6), "belly"),
 
-    P("ridge_chest", "body", (0.0, 1.2, -8.6, 0.06, 0.0, 0.0), (-1.0, -8.4, -7.4, 2.0, 2.8, 8.2), "ridge"),
-    P("ridge_torso", "body", (0.0, 0.0, 0.0, 0.0, 0.0, 0.0), (-1.0, -8.0, -8.6, 2.0, 3.2, 17.2), "ridge"),
+    P("ridge_chest", "body", (0.0, 1.3, -8.6, 0.10, 0.0, 0.0), (-1.1, -7.8, -7.6, 2.2, 3.2, 8.4), "ridge"),
+    P("ridge_torso", "body", (0.0, 0.0, 0.0, 0.0, 0.0, 0.0), (-1.0, -7.4, -8.8, 2.0, 3.4, 17.6), "ridge"),
     P("ridge_waist", "body", (0.0, -0.8, 8.4, -0.05, 0.0, 0.0), (-0.8, -6.6, -3.4, 1.6, 2.6, 6.8), "ridge"),
     P("ridge_hips", "body", (0.0, -0.6, 12.6, -0.08, 0.0, 0.0), (-0.9, -8.0, -0.6, 1.8, 2.8, 8.6), "ridge"),
 
@@ -176,67 +211,81 @@ _BODY_PARTS = [
     P("spade_right", "tail7", (-0.65, 0.0, 5.4, 0.0, 0.0, 0.7), (-0.26, -0.5, 0.0, 0.52, 1.0, 4.4), "blade", mirror=True),
 
     # ---------------------------------------------------------------- head
-    # long angular skull: cranium, skull plate, deep boxy snout, hinged jaw
-    P("head", "neck5", (0.0, 0.0, -3.2, HEAD_ANGLE, 0.0, 0.0), (-3.3, -2.7, -6.4, 6.6, 5.4, 6.4), "skull", anim=True),
-    P("skull_top", "head", (0.0, 2.6, -1.0, 0.0, 0.0, 0.0), (-2.7, -0.9, -5.6, 5.4, 1.9, 5.8), "skull"),
-    # brow ridges over the eyes
-    P("brow_l", "head", (2.5, 1.8, -3.6, 0.0, 0.0, -0.25), (-0.55, -0.55, -2.4, 1.1, 1.1, 4.8), "blade"),
-    P("brow_r", "head", (-2.5, 1.8, -3.6, 0.0, 0.0, 0.25), (-0.55, -0.55, -2.4, 1.1, 1.1, 4.8), "blade", mirror=True),
-    P("muzzle", "head", (0.0, -0.7, -6.0, 0.0, 0.0, 0.0), (-2.4, -1.9, -5.8, 4.8, 3.6, 5.8), "muzzle"),
-    P("nostril_l", "muzzle", (1.1, 0.7, -4.7, 0.0, 0.0, 0.0), (-0.45, -0.75, -0.65, 0.9, 1.5, 1.3), "small"),
-    P("nostril_r", "muzzle", (-1.1, 0.7, -4.7, 0.0, 0.0, 0.0), (-0.45, -0.75, -0.65, 0.9, 1.5, 1.3), "small"),
-    P("jaw", "head", (0.0, 1.9, -1.2, 0.05, 0.0, 0.0), (-2.4, 0.0, -7.4, 4.8, 1.8, 7.4), "jaw", anim=True),
-    P("teeth_l", "head", (1.9, 0.7, -5.6, 0.0, 0.0, 0.0), (-0.38, 0.0, -0.9, 0.76, 1.5, 2.4), "tooth"),
-    P("teeth_r", "head", (-1.9, 0.7, -5.6, 0.0, 0.0, 0.0), (-0.38, 0.0, -0.9, 0.76, 1.5, 2.4), "tooth"),
-    P("fangs", "jaw", (0.0, 0.0, -6.4, 0.0, 0.0, 0.0), (-1.8, 0.0, -1.0, 3.6, 1.4, 2.2), "tooth"),
+    # The skull is a chain of shrinking boxes, not one cube: cranium -> brow ->
+    # mid snout -> tip, each stepping down and narrowing. That taper is what makes
+    # a blocky model read as an animal head instead of a box with a nose.
+    P("head", "neck5", (0.0, 0.1, -3.4, HEAD_ANGLE, 0.0, 0.0), (-3.9, -3.0, -7.0, 7.8, 6.0, 7.0), "skull", anim=True),
+    # cranium cap and the twin ridges over the eyes
+    P("skull_top", "head", (0.0, 2.9, -1.4, 0.0, 0.0, 0.0), (-2.7, -1.0, -5.8, 5.4, 2.2, 6.2), "skull"),
+    P("skull_ridge", "head", (0.0, 3.9, -3.0, 0.10, 0.0, 0.0), (-0.8, -0.5, -4.0, 1.6, 1.2, 4.6), "blade"),
+    P("brow_l", "head", (2.5, 2.1, -3.6, 0.04, 0.0, -0.30), (-1.0, -0.6, -3.6, 2.0, 1.2, 6.2), "skull"),
+    P("brow_r", "head", (-2.5, 2.1, -3.6, 0.04, 0.0, 0.30), (-1.0, -0.6, -3.6, 2.0, 1.2, 6.2), "skull", mirror=True),
+    # upper snout: three steps, each smaller, ending in a hard tip
+    P("snout1", "head", (0.0, -1.1, -6.4, 0.06, 0.0, 0.0), (-2.6, -1.3, -5.6, 5.2, 2.8, 5.6), "muzzle"),
+    P("snout2", "snout1", (0.0, 0.0, -5.6, 0.04, 0.0, 0.0), (-2.0, -1.0, -4.6, 4.0, 2.0, 4.6), "muzzle"),
+    P("snout_tip", "snout2", (0.0, 0.0, -4.6, -0.05, 0.0, 0.0), (-1.35, -0.65, -3.2, 2.7, 1.3, 3.2), "muzzle"),
+    P("nostril_l", "snout2", (1.05, 0.55, -3.9, 0.0, 0.0, 0.0), (-0.4, -0.5, -0.6, 0.8, 1.0, 1.2), "small"),
+    P("nostril_r", "snout2", (-1.05, 0.55, -3.9, 0.0, 0.0, 0.0), (-0.4, -0.5, -0.6, 0.8, 1.0, 1.2), "small"),
+    # lower jaw, also tapering, hinged behind the cheeks
+    P("jaw", "head", (0.0, 1.9, -1.6, 0.08, 0.0, 0.0), (-2.5, 0.0, -8.4, 5.0, 1.8, 8.4), "jaw", anim=True),
+    P("jaw_tip", "jaw", (0.0, 0.0, -8.4, 0.02, 0.0, 0.0), (-1.7, 0.0, -2.2, 3.4, 1.4, 2.2), "jaw"),
+    # cheeks flare out and back to meet the jaw hinge, giving the head real depth
+    P("cheek_l", "head", (3.5, -0.6, 0.2, 0.0, -0.30, 0.30), (-0.8, -2.0, -2.6, 1.6, 4.0, 5.0), "skull"),
+    P("cheek_r", "head", (-3.5, -0.6, 0.2, 0.0, 0.30, -0.30), (-0.8, -2.0, -2.6, 1.6, 4.0, 5.0), "skull", mirror=True),
+    # interlocking teeth: two upper rows, fangs on the lower jaw
+    P("teeth_l", "snout1", (1.9, 1.2, -4.6, 0.0, 0.0, 0.0), (-0.36, 0.0, -0.9, 0.72, 1.4, 4.2), "tooth"),
+    P("teeth_r", "snout1", (-1.9, 1.2, -4.6, 0.0, 0.0, 0.0), (-0.36, 0.0, -0.9, 0.72, 1.4, 4.2), "tooth", mirror=True),
+    P("fangs", "jaw", (0.0, -0.1, -6.6, 0.0, 0.0, 0.0), (-1.9, 0.0, -1.2, 3.8, 1.5, 5.0), "tooth"),
+    # glowing slit eyes, recessed under the brow ridge
+    P("eye_l", "head", (3.52, 1.05, -4.2, 0.0, 0.0, 0.0), (-0.26, -0.55, -1.4, 0.6, 1.10, 2.8), "eye"),
+    P("eye_r", "head", (-3.52, 1.05, -4.2, 0.0, 0.0, 0.0), (-0.26, -0.55, -1.4, 0.6, 1.10, 2.8), "eye", mirror=True),
+    # jaw barbels hanging from the chin
+    P("barbel_l", "jaw", (1.7, 0.5, -2.0, -0.55, 0.0, 0.22), (-0.3, 0.0, 0.0, 0.6, 3.6, 0.6), "blade"),
+    P("barbel_r", "jaw", (-1.7, 0.5, -2.0, -0.55, 0.0, -0.22), (-0.3, 0.0, 0.0, 0.6, 3.6, 0.6), "blade", mirror=True),
 
-    # glowing slit eyes set into the cheeks
-    P("eye_l", "head", (2.92, 0.55, -4.3, 0.0, 0.0, 0.0), (-0.30, -0.62, -1.5, 0.8, 1.24, 3.0), "eye"),
-    P("eye_r", "head", (-2.92, 0.55, -4.3, 0.0, 0.0, 0.0), (-0.30, -0.62, -1.5, 0.8, 1.24, 3.0), "eye", mirror=True),
-
-    # brow horns: swept back over the neck, ringed bone, tapering to a point
-    P("horn_l1", "head", (1.9, 2.3, 0.6, -0.30, -0.22, 0.0), (-0.62, -0.70, 0.0, 1.24, 1.40, 5.2), "horn"),
-    P("horn_l2", "horn_l1", (0.0, 0.0, 5.2, -0.34, -0.16, 0.0), (-0.38, -0.44, 0.0, 0.76, 0.88, 4.2), "horn"),
-    P("horn_l3", "horn_l2", (0.0, 0.0, 4.2, -0.40, 0.0, 0.0), (-0.16, -0.2, 0.0, 0.32, 0.4, 3.0), "horn"),
-    P("horn_r1", "head", (-1.9, 2.3, 0.6, -0.30, 0.22, 0.0), (-0.62, -0.70, 0.0, 1.24, 1.40, 5.2), "horn", mirror=True),
-    P("horn_r2", "horn_r1", (0.0, 0.0, 5.2, -0.34, 0.16, 0.0), (-0.38, -0.44, 0.0, 0.76, 0.88, 4.2), "horn", mirror=True),
-    P("horn_r3", "horn_r2", (0.0, 0.0, 4.2, -0.40, 0.0, 0.0), (-0.16, -0.2, 0.0, 0.32, 0.4, 3.0), "horn", mirror=True),
+    # Crown horns: three tapering bone segments per side, rising steeply off the
+    # cranium and sweeping back -- the pale silhouette that identifies the dragon.
+    P("horn_l1", "head", (2.3, 2.9, 1.2, 0.62, -0.26, 0.0), (-0.78, -0.84, 0.0, 1.56, 1.68, 6.0), "horn"),
+    P("horn_l2", "horn_l1", (0.0, 0.0, 6.0, 0.36, -0.22, 0.0), (-0.48, -0.54, 0.0, 0.96, 1.08, 5.0), "horn"),
+    P("horn_l3", "horn_l2", (0.0, 0.0, 5.0, 0.40, 0.0, 0.0), (-0.20, -0.24, 0.0, 0.40, 0.48, 3.6), "horn"),
+    P("horn_r1", "head", (-2.3, 2.9, 1.2, 0.62, 0.26, 0.0), (-0.78, -0.84, 0.0, 1.56, 1.68, 6.0), "horn", mirror=True),
+    P("horn_r2", "horn_r1", (0.0, 0.0, 6.0, 0.36, 0.22, 0.0), (-0.48, -0.54, 0.0, 0.96, 1.08, 5.0), "horn", mirror=True),
+    P("horn_r3", "horn_r2", (0.0, 0.0, 5.0, 0.40, 0.0, 0.0), (-0.20, -0.24, 0.0, 0.40, 0.48, 3.6), "horn", mirror=True),
+    # second, shorter pair spread wide on the temples for a layered crown
+    P("horn_l4", "head", (3.3, 1.3, 1.4, 0.48, -0.55, 0.0), (-0.32, -0.38, 0.0, 0.64, 0.76, 4.2), "horn"),
+    P("horn_l5", "horn_l4", (0.0, 0.0, 4.2, 0.30, -0.22, 0.0), (-0.15, -0.18, 0.0, 0.30, 0.36, 2.6), "horn"),
+    P("horn_r4", "head", (-3.3, 1.3, 1.4, 0.48, 0.55, 0.0), (-0.32, -0.38, 0.0, 0.64, 0.76, 4.2), "horn", mirror=True),
+    P("horn_r5", "horn_r4", (0.0, 0.0, 4.2, 0.30, 0.22, 0.0), (-0.15, -0.18, 0.0, 0.30, 0.36, 2.6), "horn", mirror=True),
     # crest blades fanning off the back of the skull
-    P("crest_l", "head", (1.6, 1.1, 2.5, 0.92, -0.85, 0.0), (-0.32, 0.0, -0.6, 0.64, 4.2, 1.3), "blade"),
-    P("crest_r", "head", (-1.6, 1.1, 2.5, 0.92, 0.85, 0.0), (-0.32, 0.0, -0.6, 0.64, 4.2, 1.3), "blade", mirror=True),
-    # cheek fins and jaw barbels
-    P("cheek_l", "head", (3.1, -0.5, 0.8, 0.0, -1.45, 0.35), (-0.35, -1.2, 0.0, 0.7, 2.4, 3.2), "blade"),
-    P("cheek_r", "head", (-3.1, -0.5, 0.8, 0.0, 1.45, -0.35), (-0.35, -1.2, 0.0, 0.7, 2.4, 3.2), "blade", mirror=True),
-    P("barbel_l", "jaw", (1.6, 0.3, -1.0, -0.5, 0.0, 0.25), (-0.28, 0.0, 0.0, 0.56, 3.0, 0.56), "blade"),
-    P("barbel_r", "jaw", (-1.6, 0.3, -1.0, -0.5, 0.0, -0.25), (-0.28, 0.0, 0.0, 0.56, 3.0, 0.56), "blade", mirror=True),
-
+    P("crest_l", "head", (1.7, 1.2, 2.9, 0.85, -0.80, 0.0), (-0.34, 0.0, -0.7, 0.68, 4.4, 1.4), "blade"),
+    P("crest_r", "head", (-1.7, 1.2, 2.9, 0.85, 0.80, 0.0), (-0.34, 0.0, -0.7, 0.68, 4.4, 1.4), "blade", mirror=True),
     # ---------------------------------------------------------------- front legs
     # digitigrade: thigh forward, shin back, foot forward, three gripping talons
-    P("leg_fl_thigh", "body", (6.0, -5.0, -8.6, 0.14, 0.0, 0.0), (-2.5, -9.5, -3.4, 5.0, 10.5, 7.0), "hide", anim=True),
-    P("leg_fl_shin", "leg_fl_thigh", (0.0, -9.5, 0.4, -0.34, 0.0, 0.0), (-1.9, -9.0, -2.2, 3.8, 9.0, 4.4), "hide", anim=True),
-    P("leg_fl_foot", "leg_fl_shin", (0.0, -9.0, -0.2, 0.20, 0.0, 0.0), (-2.3, -1.4, -3.6, 4.6, 2.4, 5.2), "foot", anim=True),
+    P("leg_fl_thigh", "body", (5.4, -4.4, -8.4, 0.16, 0.0, 0.0), (-1.7, -10.0, -2.6, 3.4, 11.0, 5.6), "hide", anim=True),
+    P("leg_fl_shin", "leg_fl_thigh", (0.0, -10.0, 0.3, -0.30, 0.0, 0.0), (-1.3, -9.4, -1.6, 2.6, 9.4, 3.2), "hide", anim=True),
+    P("leg_fl_foot", "leg_fl_shin", (0.0, -9.4, -0.2, 0.22, 0.0, 0.0), (-1.7, -1.3, -3.4, 3.4, 2.3, 4.8), "foot", anim=True),
     P("leg_fl_talon1", "leg_fl_foot", (1.5, -1.1, -3.1, 0.55, 0.0, 0.0), (-0.42, -0.9, -1.5, 0.84, 1.0, 2.0), "claw"),
     P("leg_fl_talon2", "leg_fl_foot", (0.0, -1.1, -3.1, 0.55, 0.0, 0.0), (-0.42, -0.9, -1.7, 0.84, 1.0, 2.2), "claw"),
     P("leg_fl_talon3", "leg_fl_foot", (-1.5, -1.1, -3.1, 0.55, 0.0, 0.0), (-0.42, -0.9, -1.5, 0.84, 1.0, 2.0), "claw"),
 
-    P("leg_fr_thigh", "body", (-6.0, -5.0, -8.6, 0.14, 0.0, 0.0), (-2.5, -9.5, -3.4, 5.0, 10.5, 7.0), "hide", anim=True, mirror=True),
-    P("leg_fr_shin", "leg_fr_thigh", (0.0, -9.5, 0.4, -0.34, 0.0, 0.0), (-1.9, -9.0, -2.2, 3.8, 9.0, 4.4), "hide", anim=True, mirror=True),
-    P("leg_fr_foot", "leg_fr_shin", (0.0, -9.0, -0.2, 0.20, 0.0, 0.0), (-2.3, -1.4, -3.6, 4.6, 2.4, 5.2), "foot", anim=True, mirror=True),
+    P("leg_fr_thigh", "body", (-5.4, -4.4, -8.4, 0.16, 0.0, 0.0), (-1.7, -10.0, -2.6, 3.4, 11.0, 5.6), "hide", anim=True, mirror=True),
+    P("leg_fr_shin", "leg_fr_thigh", (0.0, -10.0, 0.3, -0.30, 0.0, 0.0), (-1.3, -9.4, -1.6, 2.6, 9.4, 3.2), "hide", anim=True, mirror=True),
+    P("leg_fr_foot", "leg_fr_shin", (0.0, -9.4, -0.2, 0.22, 0.0, 0.0), (-1.7, -1.3, -3.4, 3.4, 2.3, 4.8), "foot", anim=True, mirror=True),
     P("leg_fr_talon1", "leg_fr_foot", (1.5, -1.1, -3.1, 0.55, 0.0, 0.0), (-0.42, -0.9, -1.5, 0.84, 1.0, 2.0), "claw", mirror=True),
     P("leg_fr_talon2", "leg_fr_foot", (0.0, -1.1, -3.1, 0.55, 0.0, 0.0), (-0.42, -0.9, -1.7, 0.84, 1.0, 2.2), "claw", mirror=True),
     P("leg_fr_talon3", "leg_fr_foot", (-1.5, -1.1, -3.1, 0.55, 0.0, 0.0), (-0.42, -0.9, -1.5, 0.84, 1.0, 2.0), "claw", mirror=True),
 
     # ---------------------------------------------------------------- hind legs
     # powerful haunches, longer than the arms, back-swept hock
-    P("leg_bl_thigh", "body", (6.8, -4.6, 10.0, -0.30, 0.0, 0.0), (-3.6, -11.0, -3.8, 7.2, 12.0, 8.0), "hide", anim=True),
-    P("leg_bl_shin", "leg_bl_thigh", (0.0, -11.0, 0.0, 0.62, 0.0, 0.0), (-2.3, -9.5, -2.6, 4.6, 9.5, 5.2), "hide", anim=True),
+    P("leg_bl_thigh", "body", (5.6, -4.2, 9.6, -0.34, 0.0, 0.0), (-2.8, -11.6, -3.0, 5.6, 12.6, 7.6), "hide", anim=True),
+    P("leg_bl_shin", "leg_bl_thigh", (0.0, -11.6, 0.0, 0.66, 0.0, 0.0), (-1.6, -9.8, -2.0, 3.2, 9.8, 4.2), "hide", anim=True),
     P("leg_bl_foot", "leg_bl_shin", (0.0, -9.5, -0.3, -0.32, 0.0, 0.0), (-2.6, -1.5, -4.0, 5.2, 2.5, 6.0), "foot", anim=True),
     P("leg_bl_talon1", "leg_bl_foot", (1.7, -1.2, -3.5, 0.55, 0.0, 0.0), (-0.46, -1.0, -1.7, 0.92, 1.1, 2.2), "claw"),
     P("leg_bl_talon2", "leg_bl_foot", (0.0, -1.2, -3.5, 0.55, 0.0, 0.0), (-0.46, -1.0, -1.9, 0.92, 1.1, 2.4), "claw"),
     P("leg_bl_talon3", "leg_bl_foot", (-1.7, -1.2, -3.5, 0.55, 0.0, 0.0), (-0.46, -1.0, -1.7, 0.92, 1.1, 2.2), "claw"),
 
-    P("leg_br_thigh", "body", (-6.8, -4.6, 10.0, -0.30, 0.0, 0.0), (-3.6, -11.0, -3.8, 7.2, 12.0, 8.0), "hide", anim=True, mirror=True),
-    P("leg_br_shin", "leg_br_thigh", (0.0, -11.0, 0.0, 0.62, 0.0, 0.0), (-2.3, -9.5, -2.6, 4.6, 9.5, 5.2), "hide", anim=True, mirror=True),
+    P("leg_br_thigh", "body", (-5.6, -4.2, 9.6, -0.34, 0.0, 0.0), (-2.8, -11.6, -3.0, 5.6, 12.6, 7.6), "hide", anim=True, mirror=True),
+    P("leg_br_shin", "leg_br_thigh", (0.0, -11.6, 0.0, 0.66, 0.0, 0.0), (-1.6, -9.8, -2.0, 3.2, 9.8, 4.2), "hide", anim=True, mirror=True),
     P("leg_br_foot", "leg_br_shin", (0.0, -9.5, -0.3, -0.32, 0.0, 0.0), (-2.6, -1.5, -4.0, 5.2, 2.5, 6.0), "foot", anim=True, mirror=True),
     P("leg_br_talon1", "leg_br_foot", (1.7, -1.2, -3.5, 0.55, 0.0, 0.0), (-0.46, -1.0, -1.7, 0.92, 1.1, 2.2), "claw", mirror=True),
     P("leg_br_talon2", "leg_br_foot", (0.0, -1.2, -3.5, 0.55, 0.0, 0.0), (-0.46, -1.0, -1.9, 0.92, 1.1, 2.4), "claw", mirror=True),
@@ -270,4 +319,8 @@ GEAR = {
     "armor": ["armor_chest", "armor_torso", "armor_hips", "armor_collar"],
 }
 
-TEXTURE_SIZE = 512
+TEXTURE_SIZE = 1024
+# Texels per model unit. The rig is only ~48 units tall, so at 1:1 the whole head
+# is barely 8 texels wide and no detail survives. Two texels per unit doubles the
+# addressable detail on every surface while keeping the atlas inside 1024.
+TEXELS_PER_UNIT = 2
