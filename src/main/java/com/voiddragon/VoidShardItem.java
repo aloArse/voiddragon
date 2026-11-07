@@ -2,17 +2,13 @@ package com.voiddragon;
 
 import com.voiddragon.entity.VoidDragonEntity;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.Vec3;
 
 import java.util.Comparator;
 import java.util.List;
@@ -58,21 +54,11 @@ public class VoidShardItem extends LoreItem {
             return InteractionResultHolder.fail(stack);
         }
 
-        Vec3 from = dragon.position().add(0.0D, dragon.getBbHeight() * 0.5D, 0.0D);
-        dragon.ejectPassengers();
-        dragon.setFlying(false);
-        dragon.teleportTo(player.getX() + 2.0D, player.getY(), player.getZ() + 2.0D);
-        dragon.setOrderedToSit(true);
-        dragon.getNavigation().stop();
-        dragon.setDeltaMovement(Vec3.ZERO);
-
-        if (level instanceof ServerLevel server) {
-            server.sendParticles(ParticleTypes.REVERSE_PORTAL, from.x, from.y, from.z,
-                    60, 1.0D, 1.0D, 1.0D, 0.4D);
-            server.sendParticles(ParticleTypes.REVERSE_PORTAL, dragon.getX(), dragon.getY() + 1.0D, dragon.getZ(),
-                    60, 1.0D, 1.0D, 1.0D, 0.4D);
+        if (!(level instanceof ServerLevel server) || !dragon.teleportNear(server, player.position().add(2.5D, 0.0D, 0.0D))) {
+            player.displayClientMessage(Component.translatable("message.voiddragon.recall_blocked")
+                    .withStyle(ChatFormatting.GRAY), true);
+            return InteractionResultHolder.fail(stack);
         }
-        level.playSound(null, player.blockPosition(), SoundEvents.ENDERMAN_TELEPORT, SoundSource.NEUTRAL, 1.4F, 0.8F);
         player.getCooldowns().addCooldown(this, 200);
         player.displayClientMessage(Component.translatable("message.voiddragon.recalled")
                 .withStyle(ChatFormatting.LIGHT_PURPLE), true);

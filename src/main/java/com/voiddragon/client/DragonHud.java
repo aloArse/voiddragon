@@ -130,12 +130,15 @@ public class DragonHud {
     }
 
     private static String hotkey(String icon) {
-        return switch (icon) {
-            case "flap" -> "X";
-            case "rush" -> "G";
-            case "roar" -> "V";
-            case "portal" -> "C";
-            default -> "R";
+        var mapping = switch (icon) {
+            case "flap" -> ClientModEvents.FLIGHT;
+            case "rush" -> ClientModEvents.RUSH;
+            case "roar" -> ClientModEvents.ROAR;
+            case "portal" -> ClientModEvents.PORTAL;
+            default -> ClientModEvents.BREATH;
         };
+        String name = mapping.getTranslatedKeyMessage().getString();
+        // keep the little key badge inside the slot
+        return name.length() > 4 ? name.substring(0, 4) : name;
     }
 }

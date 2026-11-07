@@ -46,5 +46,6 @@
   "voiddragon.configuration.gameplay": "گیم‌پلی",
   "message.voiddragon.recalled": "اژدهای پوچی به ندای تو پاسخ داد.",
   "message.voiddragon.no_dragon": "هیچ اژدهای پوچیِ پیوندخورده‌ای نزدیک نیست.",
-  "message.voiddragon.dragon_busy": "اژدهایت الان سوار دارد."
+  "message.voiddragon.dragon_busy": "اژدهایت الان سوار دارد.",
+  "message.voiddragon.recall_blocked": "اینجا جای کافی برای اژدها نیست."
 }

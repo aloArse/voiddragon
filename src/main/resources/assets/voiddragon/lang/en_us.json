@@ -46,5 +46,6 @@
   "voiddragon.configuration.gameplay": "Gameplay",
   "message.voiddragon.recalled": "Your Void Dragon answers the call.",
   "message.voiddragon.no_dragon": "No bonded Void Dragon is nearby.",
-  "message.voiddragon.dragon_busy": "Your dragon is carrying a rider."
+  "message.voiddragon.dragon_busy": "Your dragon is carrying a rider.",
+  "message.voiddragon.recall_blocked": "No room for your dragon here."
 }

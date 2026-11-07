@@ -155,6 +155,7 @@ public class VoidDragonEntity extends TamableAnimal {
     private int dashTicks;
     private int flyTicks;
     private int bondTimer;
+    private boolean growthStatsApplied;
     private int followTeleportCooldown;
     private int idleSoundTimer;
     private final Set<Integer> dashHit = new HashSet<>();
@@ -974,6 +975,30 @@ public class VoidDragonEntity extends TamableAnimal {
         sl.playSound(null, dest.x, dest.y, dest.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.NEUTRAL, 2.5F, 1.1F);
     }
 
+    /**
+     * Moves the dragon to a free spot near {@code target} (used by the Void Shard recall).
+     * Returns false when nothing nearby is free.
+     */
+    public boolean teleportNear(ServerLevel level, Vec3 target) {
+        this.ejectPassengers();
+        this.setFlying(false);
+        Vec3 spot = findSafeSpot(level, target);
+        if (spot == null) {
+            return false;
+        }
+        Vec3 origin = this.position().add(0.0D, this.getBbHeight() * 0.5D, 0.0D);
+        this.teleportTo(spot.x, spot.y, spot.z);
+        this.setDeltaMovement(Vec3.ZERO);
+        this.hurtMarked = true;
+        this.getNavigation().stop();
+        this.setOrderedToSit(true);
+        level.sendParticles(ParticleTypes.REVERSE_PORTAL, origin.x, origin.y, origin.z, 60, 1.0D, 1.0D, 1.0D, 0.4D);
+        level.sendParticles(ParticleTypes.REVERSE_PORTAL, spot.x, spot.y + this.getBbHeight() * 0.5D, spot.z,
+                60, 1.0D, 1.0D, 1.0D, 0.4D);
+        level.playSound(null, spot.x, spot.y, spot.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.NEUTRAL, 1.6F, 0.8F);
+        return true;
+    }
+
     /** Finds a spot near {@code probe} where the dragon fits; null when there is none. */
     private Vec3 findSafeSpot(ServerLevel sl, Vec3 probe) {
         double height = this.getBbHeight();
@@ -1104,6 +1129,12 @@ public class VoidDragonEntity extends TamableAnimal {
     }
 
     private void serverTick(ServerLevel sl) {
+        // Entity attributes only exist after the attribute event fired, so grow-driven
+        // stats are applied lazily on the first server tick.
+        if (!this.growthStatsApplied) {
+            this.growthStatsApplied = true;
+            applyGrowthAttributes();
+        }
         if (this.breathCooldown > 0) this.breathCooldown--;
         if (this.dashCooldown > 0) this.dashCooldown--;
         if (this.roarCooldown > 0) this.roarCooldown--;
