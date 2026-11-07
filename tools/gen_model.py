@@ -17,11 +17,19 @@ JAVA_OUT = os.path.join(ROOT, "src/main/java/com/voiddragon/client/DragonRig.jav
 UV_OUT = os.path.join(ROOT, "tools/atlas_uv.json")
 
 
+# Minecraft addressable texture space is whole texels, so a cube thinner than one
+# texel would round down to zero and get no island at all.  Clamp to 1 so flat
+# pieces (wing membranes, horn tips) still receive a painted island.
+MIN_TEXELS = 1
+
+
 def box_size(part):
     if part["box"] is None:
         return 0.0, 0.0, 0.0
     x, y, z, w, h, d = part["box"]
-    return max(0.0, w), max(0.0, h), max(0.0, d)
+    return (max(MIN_TEXELS, round(max(0.0, w))),
+            max(MIN_TEXELS, round(max(0.0, h))),
+            max(MIN_TEXELS, round(max(0.0, d))))
 
 
 def unwrapped_size(part):

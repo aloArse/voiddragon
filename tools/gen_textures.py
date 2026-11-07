@@ -50,9 +50,9 @@ RIDGE_HI = (96, 56, 148)
 BLADE = (34, 22, 54)
 BLADE_EDGE = (168, 96, 246)
 
-MEMBRANE_DEEP = (30, 14, 46)
-MEMBRANE_MID = (48, 22, 74)
-MEMBRANE_VEIN = (162, 82, 236)
+MEMBRANE_DEEP = (24, 12, 36)
+MEMBRANE_MID = (46, 24, 68)
+MEMBRANE_VEIN = (150, 84, 214)
 
 BONE = (196, 190, 176)
 EYE_GLOW = (206, 148, 255)
@@ -322,42 +322,58 @@ def paint_membrane(cv, glow, part, rects, face, rng):
         rr = rng.uniform(max(3.0, w * 0.15), max(5.0, w * 0.45))
         blot = ((xx - cxp) ** 2 + (yy - cyp) ** 2) < rr * rr
         cv.rgb[y:y + h, x:x + w][blot] = np.array(shade(MEMBRANE_MID, f * 0.8), dtype=np.float32)
-    # radiating ribs from the wrist corner (left edge) fanning right
+    # radiating ribs from the wrist corner (left edge) fanning right: thin veins,
+    # not a fill -- the reference membrane is almost black between the ribs.
     along = xx / max(1, w - 1)
-    for k in range(7):
-        base_y = (k + 0.5) * h / 7.0
-        line = np.abs((yy - (base_y + (along - 0.5) * (h * 0.10))) % (h / 7.0))
-        line = np.minimum(line, (h / 7.0) - line)
-        width = 1.15 - along * 0.45
-        mask = (line < width) & (along > 0.02)
+    ribs = max(3, min(5, int(h / 4)))
+    for k in range(ribs):
+        base_y = (k + 0.5) * h / float(ribs)
+        line = np.abs((yy - (base_y + (along - 0.5) * (h * 0.22))) % (h / float(ribs)))
+        line = np.minimum(line, (h / float(ribs)) - line)
+        mask = (line < 0.62) & (along > 0.04)
         reg = cv.rgb[y:y + h, x:x + w]
-        reg[mask] = np.array(shade(MEMBRANE_VEIN, f), dtype=np.float32)
+        reg[mask] = np.array(shade(MEMBRANE_VEIN, f * 0.72), dtype=np.float32)
         cv.rgb[y:y + h, x:x + w] = reg
         if glow is not None:
             g = glow.rgb[y:y + h, x:x + w]
-            g[mask] = np.array(CRACK_HOT, dtype=np.float32)
+            g[mask] = np.array(CRACK_HOT, dtype=np.float32) * 0.85
             glow.rgb[y:y + h, x:x + w] = g
             ga = glow.a[y:y + h, x:x + w]
-            ga[mask] = 0.9
-            # faint inner haze so the wing glows softly, not flat black
-            haze = (glow.a[y:y + h, x:x + w] < 0.05) & (rng.random((h, w)) > 0.55)
-            g2 = glow.rgb[y:y + h, x:x + w]
-            g2[haze] = np.array(CRACK_HOT, dtype=np.float32) * 0.25
-            glow.rgb[y:y + h, x:x + w] = g2
-            ga[haze] = 0.30
+            ga[mask] = 0.85
             glow.a[y:y + h, x:x + w] = ga
+    if glow is not None:
+        # scattered motes of light inside the leather, like the reference art
+        mote = (rng.random((h, w)) > 0.965)
+        g = glow.rgb[y:y + h, x:x + w]
+        g[mote] = np.array(CRACK_HOT, dtype=np.float32) * 0.5
+        glow.rgb[y:y + h, x:x + w] = g
+        ga = glow.a[y:y + h, x:x + w]
+        ga[mote] = 0.55
+        glow.a[y:y + h, x:x + w] = ga
+        # faint inner haze along the wrist so the wing glows softly, not flat black
+        haze = (glow.a[y:y + h, x:x + w] < 0.05) & (rng.random((h, w)) > 0.93)
+        g2 = glow.rgb[y:y + h, x:x + w]
+        g2[haze] = np.array(CRACK_HOT, dtype=np.float32) * 0.16
+        glow.rgb[y:y + h, x:x + w] = g2
+        ga[haze] = 0.10
+        glow.a[y:y + h, x:x + w] = ga
     # bright leading edge
-    edge = xx < max(1, int(w * 0.05))
-    cv.rgb[y:y + h, x:x + w][edge] = np.array(shade(MEMBRANE_VEIN, f * 1.1), dtype=np.float32)
+    edge = xx < max(1, int(w * 0.04))
+    cv.rgb[y:y + h, x:x + w][edge] = np.array(shade(MEMBRANE_VEIN, f * 0.9), dtype=np.float32)
     if glow is not None:
         g = glow.rgb[y:y + h, x:x + w]
         g[edge] = np.array(CRACK_HOT, dtype=np.float32)
         glow.rgb[y:y + h, x:x + w] = g
         ga = glow.a[y:y + h, x:x + w]
-        ga[edge] = 0.8
+        ga[edge] = 0.45
         glow.a[y:y + h, x:x + w] = ga
-    # torn holes along the trailing edge
-    holes = ((xx > w * 0.5) & (rng.random((h, w)) > 0.80))
+    # torn holes along the trailing edge, plus notches bitten out of the edge
+    holes = ((xx > w * 0.78) & (rng.random((h, w)) > 0.94))
+    for _ in range(2):
+        cxp, cyp = rng.uniform(w * 0.86, w), rng.uniform(0, h)
+        rr = rng.uniform(1.0, 2.0)
+        holes |= ((xx - cxp) ** 2 / 2.2 + (yy - cyp) ** 2) < rr * rr
+    holes &= (xx > w * 0.76)
     region_a = cv.a[y:y + h, x:x + w]
     region_a[holes] = 0.0
     cv.a[y:y + h, x:x + w] = region_a
@@ -634,9 +650,9 @@ def build_atlas(armoured=False):
         painter = part["painter"]
         if painter == "pivot":
             continue
-        w, h, d = int(round(box[3])), int(round(box[4])), int(round(box[5]))
-        if w <= 0 or h <= 0 or d <= 0:
-            continue
+        w = max(1, int(round(box[3])))
+        h = max(1, int(round(box[4])))
+        d = max(1, int(round(box[5])))
         u, v = uv[part["name"]][0], uv[part["name"]][1]
         rects = face_rects(u, v, w, h, d)
         rng = np.random.default_rng(abs(hash(part["name"])) % (2 ** 31))

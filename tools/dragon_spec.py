@@ -81,10 +81,10 @@ FINGERS = [
 ]
 # (pivot x, yaw sweep, length, chord, trailing offset, pitch) for membrane panels
 PANELS = [
-    (0.7, -0.16, 19.5, 13.0, 0.8, 0.30),
-    (0.7, -0.64, 16.5, 12.0, 0.5, 0.46),
-    (0.7, -1.10, 12.5, 10.0, 0.2, 0.62),
-    (1.3, 0.48, 15.0, 11.0, -2.4, 0.16),
+    (0.7, -0.12, 20.0, 13.0, 1.0, 0.06),
+    (0.7, -0.60, 17.0, 12.5, 0.6, 0.10),
+    (0.7, -1.06, 13.0, 11.0, 0.3, 0.16),
+    (1.3, 0.50, 15.5, 10.0, -2.4, 0.02),
 ]
 ARM_LEN = 15.0
 FORE_LEN = 14.0
@@ -100,11 +100,14 @@ def _wings():
     out = []
     for side, sgn in (("l", 1.0), ("r", -1.0)):
         m = sgn < 0
+        # Rest / display stance: the arm lifts above the shoulder and opens out,
+        # the wrist folds slightly back, and the membrane panels hang below so the
+        # wing reads as a fan of cloth rather than a flat plank.
         out.append(P(f"wing_{side}", "body",
-                     (sgn * 6.2, 4.4, -7.6, 0.0, sgn * -0.30, sgn * 0.52),
+                     (sgn * 6.2, 4.6, -7.6, 0.22, sgn * -0.62, sgn * 0.46),
                      (0.0, -1.9, -2.0, ARM_LEN, 3.8, 4.0), "hide", anim=True, mirror=m))
         out.append(P(f"wing_{side}_fore", f"wing_{side}",
-                     (sgn * ARM_LEN, 0.0, 0.0, 0.0, sgn * -0.22, sgn * -0.92),
+                     (sgn * ARM_LEN, 0.0, 0.0, -0.42, sgn * -0.30, sgn * -0.16),
                      (0.0, -1.5, -1.6, FORE_LEN, 3.0, 3.2), "hide", anim=True, mirror=m))
         out.append(P(f"wing_{side}_claw", f"wing_{side}_fore",
                      (sgn * FORE_LEN, 0.0, -0.4, -0.80, 0.0, 0.0),
@@ -116,7 +119,7 @@ def _wings():
         for i, (px, ang, length, chord, trail, pitch) in enumerate(PANELS, start=1):
             out.append(P(f"wing_{side}_m{i}", f"wing_{side}_fore",
                          (sgn * px, 0.0, 0.0, sgn * pitch, sgn * ang, 0.0),
-                         (0.0, -0.22, trail, length, 0.44, chord), "membrane", mirror=m))
+                         (0.0, -0.30, trail, length, 0.60, chord), "membrane", mirror=m))
     return out
 
 

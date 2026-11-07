@@ -58,7 +58,8 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
     private final ModelPart[] wingRFingers = new ModelPart[3];
     private final ModelPart[] wingLMembrane = new ModelPart[4];
     private final ModelPart[] wingRMembrane = new ModelPart[4];
-    private final float wingRestZRot, wingRestYRot, foreRestZRot;
+    private final float wingRestZRot, wingRestYRot, wingRestXRot;
+    private final float foreRestZRot, foreRestXRot, foreRestYRot;
 
     private final List<ModelPart> legs = new ArrayList<>();   // thigh, shin, foot triples
     private final float[] thighRestX = new float[4];
@@ -104,7 +105,10 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         this.wingRFore = wingR.getChild("wing_r_fore");
         this.wingRestZRot = wingL.zRot;
         this.wingRestYRot = wingL.yRot;
+        this.wingRestXRot = wingL.xRot;
         this.foreRestZRot = wingLFore.zRot;
+        this.foreRestXRot = wingLFore.xRot;
+        this.foreRestYRot = wingLFore.yRot;
         for (int i = 0; i < 3; i++) {
             this.wingLFingers[i] = wingLFore.getChild("wing_l_f" + (i + 1));
             this.wingRFingers[i] = wingRFore.getChild("wing_r_f" + (i + 1));
@@ -264,14 +268,17 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         float idle = Mth.sin(limbSwing * 0.33F) * 0.03F * limbSwingAmount;
         wingL.yRot = wingRestYRot - unfurl * 0.8F + idle;
         wingL.zRot = wingRestZRot - unfurl * 0.5F + breathe * 0.02F;
-        wingL.xRot = 0.0F;
-        wingLFore.yRot = 0.0F;
+        // keep the authored roll that turns the membrane into a fan instead of a plank
+        wingL.xRot = wingRestXRot;
+        wingLFore.xRot = foreRestXRot;
+        wingLFore.yRot = foreRestYRot + unfurl * 0.2F;
         wingLFore.zRot = foreRestZRot + unfurl * 0.6F;
 
         wingR.yRot = -wingL.yRot;
         wingR.zRot = -wingL.zRot;
-        wingR.xRot = 0.0F;
-        wingRFore.yRot = 0.0F;
+        wingR.xRot = wingL.xRot;
+        wingRFore.xRot = wingLFore.xRot;
+        wingRFore.yRot = -wingLFore.yRot;
         wingRFore.zRot = -wingLFore.zRot;
 
         for (int i = 0; i < 4; i++) {
@@ -286,11 +293,12 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         float sweep = 0.34F * flap;
         float armRoll = -0.10F + sweep;
         float foreRoll = 0.06F + flap * 0.12F;
-        wingL.xRot = -0.05F + flap * 0.10F;
+        wingL.xRot = wingRestXRot - 0.05F + flap * 0.10F;
         wingL.zRot = Mth.lerp(fly, wingRestZRot, armRoll);
-        wingL.yRot = Mth.lerp(fly, wingRestYRot, 0.10F);
+        wingL.yRot = Mth.lerp(fly, wingRestYRot, -0.42F);
+        wingLFore.xRot = foreRestXRot;
         wingLFore.zRot = Mth.lerp(fly, foreRestZRot, foreRoll);
-        wingLFore.yRot = Mth.lerp(fly, 0.0F, 0.02F);
+        wingLFore.yRot = Mth.lerp(fly, foreRestYRot, -0.26F);
         for (int i = 0; i < 3; i++) {
             wingLFingers[i].zRot = -0.05F + flapLag * 0.10F * (1.0F - i * 0.2F);
         }
@@ -301,6 +309,7 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         wingR.xRot = wingL.xRot;
         wingR.zRot = -wingL.zRot;
         wingR.yRot = -wingL.yRot;
+        wingRFore.xRot = wingLFore.xRot;
         wingRFore.zRot = -wingLFore.zRot;
         wingRFore.yRot = -wingLFore.yRot;
         for (int i = 0; i < 3; i++) {
