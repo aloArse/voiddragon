@@ -214,23 +214,26 @@ _BODY_PARTS = [
     P("head", "neck5", (0.0, 0.2, -3.6, HEAD_ANGLE, 0.0, 0.0),
       (-4.8, -3.4, -9.4, 9.6, 6.8, 10.0), "skull", anim=True),
     # muzzle: one long box, slightly narrower and lower than the cranium
-    P("muzzle", "head", (0.0, -1.3, -8.2, 0.04, 0.0, 0.0),
-      (-3.1, -2.0, -9.0, 6.2, 4.0, 9.0), "muzzle"),
+    P("muzzle", "head", (0.0, -1.3, -7.4, 0.04, 0.0, 0.0),
+      (-3.2, -2.0, -10.4, 6.4, 4.0, 10.4), "muzzle"),
+    # nasal bridge: fills the step between cranium and muzzle
+    P("nasal_bridge", "head", (0.0, 1.9, -5.0, 0.0, 0.0, 0.0),
+      (-2.8, -0.7, -5.0, 5.6, 1.4, 5.0), "muzzle"),
     # a short, blunt snout tip so the profile is not a perfect rectangle
     P("snout_tip", "muzzle", (0.0, 0.0, -8.8, -0.10, 0.0, 0.0),
       (-2.4, -1.6, -3.0, 4.8, 3.2, 3.0), "muzzle"),
-    P("nostril_l", "snout_tip", (1.5, 1.1, -3.0, 0.0, 0.0, 0.0),
-      (-0.45, -0.5, -0.5, 0.9, 1.0, 0.9), "small"),
-    P("nostril_r", "snout_tip", (-1.5, 1.1, -3.0, 0.0, 0.0, 0.0),
-      (-0.45, -0.5, -0.5, 0.9, 1.0, 0.9), "small", mirror=True),
+    P("nostril_l", "snout_tip", (2.1, 0.2, -1.4, 0.0, 0.0, 0.0),
+      (-0.15, -0.35, -0.5, 0.30, 0.7, 1.0), "small"),
+    P("nostril_r", "snout_tip", (-2.1, 0.2, -1.4, 0.0, 0.0, 0.0),
+      (-0.15, -0.35, -0.5, 0.30, 0.7, 1.0), "small", mirror=True),
     # lower jaw: one long box hinged at the back of the skull
-    P("jaw", "head", (0.0, 2.6, -2.6, 0.04, 0.0, 0.0),
-      (-2.9, 0.0, -15.0, 5.8, 1.8, 15.0), "jaw", anim=True),
+    P("jaw", "head", (0.0, -2.2, -3.8, 0.05, 0.0, 0.0),
+      (-3.0, -2.0, -13.4, 6.0, 2.0, 13.4), "jaw", anim=True),
     # a single tooth strip per side, inset so only the points show against the jaw
-    P("teeth_l", "muzzle", (2.2, 1.9, -5.4, 0.0, 0.0, 0.0),
-      (-0.35, 0.0, -1.0, 0.7, 1.2, 6.0), "tooth"),
-    P("teeth_r", "muzzle", (-2.2, 1.9, -5.4, 0.0, 0.0, 0.0),
-      (-0.35, 0.0, -1.0, 0.7, 1.2, 6.0), "tooth", mirror=True),
+    P("teeth_l", "muzzle", (2.0, -1.9, -4.4, 0.0, 0.0, 0.0),
+      (-0.30, -1.1, -1.0, 0.60, 1.1, 6.0), "tooth"),
+    P("teeth_r", "muzzle", (-2.0, -1.9, -4.4, 0.0, 0.0, 0.0),
+      (-0.30, -1.1, -1.0, 0.60, 1.1, 6.0), "tooth", mirror=True),
     # eyes: small, deep-set, under a heavy brow that casts a shadow
     P("brow_l", "head", (3.1, 1.7, -5.4, 0.0, 0.0, -0.34),
       (-1.1, -0.7, -4.4, 2.2, 1.4, 7.0), "skull"),
@@ -242,10 +245,10 @@ _BODY_PARTS = [
       (-0.20, -0.80, -2.0, 0.60, 1.6, 4.0), "eye", mirror=True),
     # crown horns: one pair, swept up and back, thick at the root and tapering.
     # (Multiple pairs turned into pale clutter around the skull at this scale.)
-    P("horn_l1", "head", (2.1, 2.8, -5.2, -0.62, 0.16, 0.0),
-      (-1.05, -1.15, -1.0, 2.10, 2.30, 12.0), "horn"),
-    P("horn_r1", "head", (-2.1, 2.8, -5.2, -0.62, -0.16, 0.0),
-      (-1.05, -1.15, -1.0, 2.10, 2.30, 12.0), "horn", mirror=True),
+    P("horn_l1", "head", (2.0, 1.6, -6.4, -0.30, 0.16, 0.0),
+      (-0.95, -1.05, -2.4, 1.90, 2.10, 9.0), "horn"),
+    P("horn_r1", "head", (-2.0, 1.6, -6.4, -0.30, -0.16, 0.0),
+      (-0.95, -1.05, -2.4, 1.90, 2.10, 9.0), "horn", mirror=True),
 
     # ---------------------------------------------------------------- front legs
     # digitigrade: thigh forward, shin back, foot forward, three gripping talons
