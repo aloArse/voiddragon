@@ -19,6 +19,10 @@ public class ClientModEvents {
     public static final KeyMapping FLIGHT = new KeyMapping("key.voiddragon.flight", GLFW.GLFW_KEY_X, CATEGORY);
     public static final KeyMapping ROAR = new KeyMapping("key.voiddragon.roar", GLFW.GLFW_KEY_V, CATEGORY);
     public static final KeyMapping PORTAL = new KeyMapping("key.voiddragon.portal", GLFW.GLFW_KEY_C, CATEGORY);
+    public static final KeyMapping STORM = new KeyMapping("key.voiddragon.storm", GLFW.GLFW_KEY_B, CATEGORY);
+    public static final KeyMapping SIZE_UP = new KeyMapping("key.voiddragon.size_up", GLFW.GLFW_KEY_RIGHT_BRACKET, CATEGORY);
+    public static final KeyMapping SIZE_DOWN = new KeyMapping("key.voiddragon.size_down", GLFW.GLFW_KEY_LEFT_BRACKET, CATEGORY);
+    public static final KeyMapping SIZE_AUTO = new KeyMapping("key.voiddragon.size_auto", GLFW.GLFW_KEY_BACKSLASH, CATEGORY);
 
     @SubscribeEvent
     public static void registerKeys(RegisterKeyMappingsEvent event) {
@@ -27,6 +31,10 @@ public class ClientModEvents {
         event.register(FLIGHT);
         event.register(ROAR);
         event.register(PORTAL);
+        event.register(STORM);
+        event.register(SIZE_UP);
+        event.register(SIZE_DOWN);
+        event.register(SIZE_AUTO);
     }
 
     @SubscribeEvent

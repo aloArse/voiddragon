@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
-"""Paints every texture the Void Dragon mod uses, straight from the model spec.
+"""Paints the Void Dragon texture atlas straight from the model spec.
 
-The 512x512 entity atlas is painted face-by-face using the UV islands packed by
-tools/gen_model.py (tools/atlas_uv.json), so scales line up with the geometry,
-eyes land on the front of the skull, veins follow the wing membranes and the
-armour plates wrap the torso correctly.
+Art direction: the reference creature is a black obsidian dragon whose hide is
+cracked with molten violet energy, crowned by pale bone horns and an inner glow.
+The atlas is painted face-by-face on the exact UV islands that tools/gen_model.py
+packs, so scales, plates, eyes and glow veins land precisely where the geometry
+expects them.
 
 Outputs
-  textures/entity/void_dragon.png           base atlas
-  textures/entity/void_dragon_armored.png   armoured variant
-  textures/entity/void_dragon_glow.png      fullbright overlay (eyes, veins, runes)
-  textures/item/*.png                       shard / saddle / armour icons
-  textures/gui/ability_*.png                HUD ability icons
+  textures/entity/void_dragon.png            base atlas
+  textures/entity/void_dragon_glow.png       emissive (eyes, cracks, membranes)
+  textures/entity/void_dragon_armored.png    armoured variant
+  textures/item/*.png                        shard / saddle / armour icons
+  textures/gui/ability_*.png                 HUD icons
 
-Run:  python3 tools/gen_textures.py
+Run: python3 tools/gen_textures.py
 """
 import json
 import math
@@ -21,6 +22,7 @@ import os
 import random
 import sys
 
+import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -30,44 +32,59 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(ROOT, "src/main/resources/assets/voiddragon/textures")
 UV_FILE = os.path.join(ROOT, "tools/atlas_uv.json")
 
-# ------------------------------------------------------------------ palette
-BLACK = (10, 7, 15)
-HIDE = (52, 40, 74)
-HIDE_DARK = (26, 18, 38)
-HIDE_LIGHT = (92, 70, 128)
-SCALE_EDGE = (28, 20, 42)
-RIDGE = (74, 44, 116)
-RIDGE_HI = (118, 74, 176)
-BELLY = (60, 50, 78)
-BELLY_LINE = (38, 30, 50)
-MEMBRANE = (52, 26, 76)
-MEMBRANE_DARK = (34, 16, 50)
-MEMBRANE_VEIN = (92, 48, 132)
-HORN = (72, 66, 88)
-HORN_TIP = (150, 140, 172)
-FIN = (68, 36, 102)
-FIN_EDGE = (128, 78, 186)
-SKULL = (46, 35, 64)
-SKULL_PLATE = (66, 50, 92)
-JAW = (56, 46, 72)
-LIMB = (38, 28, 54)
-FOOT = (30, 22, 44)
+# ------------------------------------------------------------------- palette
+OBSIDIAN = (23, 18, 31)
+HIDE = (62, 48, 92)
+HIDE_MID = (84, 64, 122)
+HIDE_HI = (118, 88, 176)
+EDGE_DARK = (26, 19, 38)
+CRACK = (92, 44, 140)
+CRACK_HOT = (176, 92, 255)
+
+BELLY = (74, 60, 98)
+BELLY_LINE = (38, 29, 52)
+
+RIDGE = (76, 44, 116)
+RIDGE_HI = (96, 56, 148)
+
+BLADE = (58, 38, 88)
+BLADE_EDGE = (138, 84, 208)
+
+MEMBRANE_DEEP = (62, 28, 92)
+MEMBRANE_MID = (78, 36, 116)
+MEMBRANE_VEIN = (126, 60, 188)
+
+BONE = (196, 190, 176)
+EYE_GLOW = (206, 148, 255)
+BONE_SHADE = (150, 144, 134)
+BONE_TIP = (236, 232, 222)
+
+SKULL = (56, 44, 84)
+SKULL_PLATE = (74, 58, 110)
+MUZZLE = (60, 47, 90)
+JAW = (48, 37, 72)
+
+LIMB = (54, 42, 80)
+FOOT = (42, 33, 62)
 
 VOID = (168, 92, 255)
 VOID_BRIGHT = (214, 158, 255)
-VOID_PALE = (240, 222, 255)
-EYE_CORE = (232, 200, 255)
+VOID_PALE = (242, 226, 255)
+EYE_CORE = (236, 206, 255)
 
-LEATHER = (54, 30, 44)
-LEATHER_HI = (84, 48, 66)
-STEEL = (44, 42, 62)
-STEEL_HI = (96, 92, 124)
-STEEL_DARK = (24, 22, 34)
+LEATHER = (48, 26, 40)
+LEATHER_HI = (78, 44, 62)
+STEEL = (40, 38, 56)
+STEEL_HI = (92, 88, 120)
+STEEL_DARK = (22, 20, 30)
 RUNE = (150, 80, 240)
 
+FACE_TINT = {"top": 1.12, "bottom": 0.66, "front": 1.0, "back": 0.86, "left": 0.82, "right": 0.94}
 
+
+# ----------------------------------------------------------------- helpers
 def clamp(v, lo=0, hi=255):
-    return max(lo, min(hi, int(round(v))))
+    return max(lo, min(hi, int(v)))
 
 
 def mix(a, b, t):
@@ -75,434 +92,586 @@ def mix(a, b, t):
     return tuple(clamp(a[i] + (b[i] - a[i]) * t) for i in range(3))
 
 
-def jitter(color, amount, rng, alpha=255):
-    return (clamp(color[0] + rng.randint(-amount, amount)),
-            clamp(color[1] + rng.randint(-amount, amount)),
-            clamp(color[2] + rng.randint(-amount, amount)), alpha)
+def shade(c, f):
+    return tuple(clamp(v * f) for v in c)
 
 
-def shade(color, f, alpha=255):
-    return (clamp(color[0] * f), clamp(color[1] * f), clamp(color[2] * f), alpha)
-
-
-# face rectangles in the box unwrap -------------------------------------------
 def face_rects(u, v, w, h, d):
-    w, h, d = int(w), int(h), int(d)
     return {
-        "top":    (u + d, v, w, d),
+        "top": (u + d, v, w, d),
         "bottom": (u + d + w, v, w, d),
-        "right":  (u, v + d, d, h),
-        "front":  (u + d, v + d, w, h),
-        "left":   (u + d + w, v + d, d, h),
-        "back":   (u + d + w + d, v + d, w, h),
+        "right": (u, v + d, d, h),
+        "front": (u + d, v + d, w, h),
+        "left": (u + d + w, v + d, d, h),
+        "back": (u + d + w + d, v + d, w, h),
     }
 
 
-FACE_SHADE = {"top": 1.10, "bottom": 0.72, "front": 1.0, "back": 0.92, "left": 0.88, "right": 0.96}
-
-
 class Canvas:
-    def __init__(self, size):
+    """RGBA paint canvas backed by numpy for speed."""
+
+    def __init__(self, size, seed=2026):
         self.size = size
-        self.img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-        self.px = self.img.load()
-        self.rng = random.Random(4242)
+        self.rgb = np.zeros((size, size, 3), dtype=np.float32)
+        self.a = np.zeros((size, size), dtype=np.float32)
+        self.rng = random.Random(seed)
+        self.nprng = np.random.default_rng(seed)
 
-    def put(self, x, y, color, alpha=255):
+    # -- low level
+    def fill(self, rect, color, factor=1.0, noise=0):
+        x, y, w, h = rect
+        if w <= 0 or h <= 0:
+            return
+        patch = np.zeros((h, w, 3), dtype=np.float32)
+        patch[:] = shade(color, factor)
+        if noise:
+            patch += self.nprng.integers(-noise, noise + 1, size=(h, w, 1)).astype(np.float32)
+        self.rgb[y:y + h, x:x + w] = patch
+        self.a[y:y + h, x:x + w] = 1.0
+
+    def put(self, x, y, color, alpha=1.0):
         if 0 <= x < self.size and 0 <= y < self.size:
-            if alpha >= 255:
-                self.px[x, y] = (color[0], color[1], color[2], 255)
-            else:
-                base = self.px[x, y]
-                a = alpha / 255.0
-                self.px[x, y] = (clamp(base[0] * (1 - a) + color[0] * a),
-                                 clamp(base[1] * (1 - a) + color[1] * a),
-                                 clamp(base[2] * (1 - a) + color[2] * a),
-                                 max(base[3], alpha))
+            cur = self.rgb[y, x]
+            self.rgb[y, x] = cur * (1 - alpha) + np.array(color, dtype=np.float32) * alpha
+            self.a[y, x] = max(self.a[y, x], alpha)
 
-    def fill(self, rect, color, factor=1.0, rng_amount=0, rng=None):
+    def rect_mask(self, rect):
         x, y, w, h = rect
-        rng = rng or self.rng
-        for iy in range(y, y + h):
-            for ix in range(x, x + w):
-                c = shade(color, factor)
-                if rng_amount:
-                    c = jitter(c, rng_amount, rng)
-                self.put(ix, iy, c)
+        m = np.zeros((self.size, self.size), dtype=bool)
+        m[y:y + h, x:x + w] = True
+        return m
 
-    def border(self, rect, color, factor=0.55):
+    # -- procedural brushes
+    def scales(self, rect, base, hi, dark, factor=1.0, cw=9, ch=7, seed_shift=0):
+        """Overlapping rounded scales: dark seams, per-scale value jitter, lit crown."""
         x, y, w, h = rect
-        for ix in range(x, x + w):
-            self.put(ix, y, shade(color, factor))
-            self.put(ix, y + h - 1, shade(color, factor * 0.85))
-        for iy in range(y, y + h):
-            self.put(x, iy, shade(color, factor))
-            self.put(x + w - 1, iy, shade(color, factor * 0.9))
+        if w <= 0 or h <= 0:
+            return
+        yy, xx = np.mgrid[0:h, 0:w]
+        row = yy // ch
+        col = (xx + (cw // 2) * (row % 2)) // cw
+        u = (xx + (cw // 2) * (row % 2)) % cw
+        v = yy % ch
+        dx = (u - cw / 2.0) / (cw / 2.0)
+        dy = (v - ch * 0.62) / (ch / 2.0)
+        d = (dx * dx) * 0.85 + (dy * dy)
+        # deterministic per-scale brightness so no two scales match
+        hv = (row * 73 + col * 151 + seed_shift * 17) % 23
+        jit = 0.80 + hv / 23.0 * 0.45
+        base_c = np.array(shade(base, factor), dtype=np.float32)[None, None, :] * jit[..., None]
+        hi_c = np.array(shade(hi, factor), dtype=np.float32)[None, None, :] * jit[..., None]
+        dark_c = np.array(shade(dark, factor), dtype=np.float32)
+        shell = np.empty((h, w, 3), dtype=np.float32)
+        shell[:] = dark_c
+        body_mask = d <= 1.06
+        shell[body_mask] = (base_c * 0.92)[body_mask]
+        shell[d <= 0.72] = base_c[d <= 0.72]
+        m2 = d <= 0.34
+        shell[m2] = (base_c * 0.55 + hi_c * 0.45)[m2]
+        m3 = (d <= 0.86) & (dy > 0.38)
+        shell[m3] = (hi_c * 0.55 + base_c * 0.45)[m3]
+        shell += self.nprng.integers(-3, 4, size=(h, w, 1)).astype(np.float32)
+        self.rgb[y:y + h, x:x + w] = shell
+        self.a[y:y + h, x:x + w] = 1.0
+
+    def cracks(self, rect, glow, factor=1.0, density=0.16, seed=0):
+        """Molten fissures running across a scale patch; mirrored into the glow atlas."""
+        x, y, w, h = rect
+        if w <= 1 or h <= 1:
+            return
+        rng = random.Random(1000 + seed)
+        yy, xx = np.mgrid[0:h, 0:w]
+        mask = np.zeros((h, w), dtype=bool)
+        steps = max(2, int((w + h) * density))
+        for _ in range(steps):
+            px = rng.uniform(0, w - 1)
+            py = rng.uniform(0, h - 1)
+            ang = rng.uniform(0, math.tau)
+            length = rng.uniform(0.25, 0.8) * max(w, h)
+            for s in range(int(length)):
+                px += math.cos(ang) * 0.9
+                py += math.sin(ang) * 0.9
+                ang += rng.uniform(-0.35, 0.35)
+                ix, iy = int(px), int(py)
+                if 0 <= ix < w and 0 <= iy < h:
+                    # only crack where there is already hide (keeps alpha edges clean)
+                    if self.a[y + iy, x + ix] > 0.5:
+                        mask[iy, ix] = True
+                if not (0 <= px < w and 0 <= py < h):
+                    break
+        if not mask.any():
+            return
+        cold = np.array(shade(CRACK, factor), dtype=np.float32)
+        hot = np.array(shade(CRACK_HOT, factor), dtype=np.float32)
+        region = self.rgb[y:y + h, x:x + w]
+        region[mask] = cold
+        # brighter core on a subset for depth
+        core = mask & (self.nprng.random((h, w)) > 0.55)
+        region[core] = hot
+        self.rgb[y:y + h, x:x + w] = region
+        if glow is not None:
+            g = glow.rgb[y:y + h, x:x + w]
+            g[mask] = hot
+            g[core] = np.array(VOID_BRIGHT, dtype=np.float32)
+            glow.rgb[y:y + h, x:x + w] = g
+            glow.a[y:y + h, x:x + w] = np.where(mask | (glow.a[y:y + h, x:x + w] > 0), 1.0, 0.0)
+
+    def ao(self, rect, strength=0.62, depth=4):
+        """Darken the bottom rows and brighten the top row of a face."""
+        x, y, w, h = rect
+        if w <= 0 or h <= 0:
+            return
+        for i in range(depth):
+            f = 1.0 - (1.0 - strength) * (1.0 - i / depth)
+            self.rgb[y + h - 1 - i, x:x + w] *= f
+        self.rgb[y, x:x + w] = np.clip(self.rgb[y, x:x + w] * 1.10, 0, 255)
+
+    def image(self):
+        arr = np.concatenate([np.clip(self.rgb, 0, 255), (np.clip(self.a, 0, 1) * 255)[..., None]], axis=2)
+        return Image.fromarray(arr.astype(np.uint8))
 
 
-# ------------------------------------------------------------------ patterns
-def soft_ao(canvas, rect, strength=0.85, depth=3):
-    """Gentle darkening toward the bottom edge of a face - reads as ambient occlusion."""
+# --------------------------------------------------------------- part painting
+def paint_hide(cv, glow, part, rects, face, rng, armoured=False):
+    rect = rects[face]
+    f = FACE_TINT[face]
+    cv.scales(rect, HIDE, HIDE_HI, EDGE_DARK, f, cw=10, ch=8)
+    if face == "top":
+        # spine groove with glowing crack down the middle
+        x, y, w, h = rect
+        mid = x + w // 2
+        cv.rgb[y:y + h, mid - 1:mid + 1] = np.array(shade(RIDGE, f), dtype=np.float32)
+        if h > 6:
+            glow.rgb[y + 2:y + h - 2, mid] = np.array(VOID, dtype=np.float32)
+            glow.a[y + 2:y + h - 2, mid] = 1.0
+    if face == "bottom":
+        cv.scales(rect, BELLY, mix(BELLY, HIDE_HI, 0.55), BELLY_LINE, f, cw=8, ch=4)
+    cv.cracks(rect, glow, f, density=0.10 if face in ("front", "back") else 0.06,
+              seed=hash(part["name"] + face) % 9999)
+    cv.ao(rect, 0.70 if face in ("front", "back") else 0.55)
+
+
+def paint_belly(cv, glow, part, rects, face, rng):
+    rect = rects[face]
+    f = FACE_TINT[face]
     x, y, w, h = rect
-    for i in range(depth):
-        f = strength + (1.0 - strength) * (i / depth)
-        for ix in range(x, x + w):
-            c = canvas.px[ix, y + h - 1 - i]
-            canvas.put(ix, y + h - 1 - i, shade(c[:3], f, c[3]))
-    for ix in range(x, x + w):
-        c = canvas.px[ix, y]
-        canvas.put(ix, y, shade(c[:3], 1.06, c[3]))
+    cv.fill(rect, BELLY, f, noise=5)
+    # horizontal abdominal bars
+    for i in range(1, h, 4):
+        cv.rgb[y + i, x:x + w] = np.array(shade(BELLY_LINE, f), dtype=np.float32)
+        cv.rgb[y + i + 1, x:x + w] = np.array(shade(mix(BELLY, HIDE_MID, 0.5), f), dtype=np.float32)
+    cv.ao(rect, 0.62)
 
-def scales(canvas, rect, rng, base, light, dark, cw=6, ch=4):
-    """Overlapping fish scales, brighter on the leading edge, dark in the groove."""
+
+def paint_ridge(cv, glow, part, rects, face, rng):
+    rect = rects[face]
+    f = FACE_TINT[face]
     x, y, w, h = rect
-    for iy in range(y, y + h):
-        for ix in range(x, x + w):
-            row = (iy - y) // ch
-            u = (ix - x + (cw // 2) * (row % 2)) % cw
-            v = (iy - y) % ch
-            dx = (u - cw / 2.0) / (cw / 2.0)
-            dy = (v - ch / 2.0) / (ch / 2.0)
-            d = dx * dx + dy * dy
-            if d > 1.25:
-                c = mix(base, dark, 0.55)
-            elif d > 0.8:
-                c = mix(base, dark, 0.85)
-            elif d < 0.18:
-                c = mix(base, light, 0.5)
-            else:
-                c = mix(base, light, 0.08)
-            canvas.put(ix, iy, jitter(c, 3, rng))
+    for i in range(h):
+        t = i / max(1, h - 1)
+        cv.rgb[y + i, x:x + w] = np.array(shade(mix(RIDGE, RIDGE_HI, t), f), dtype=np.float32)
+    cv.a[y:y + h, x:x + w] = 1.0
+    if face in ("top", "left", "right"):
+        glow.rgb[y + 1:y + h:2, x:x + w] = np.array(VOID_BRIGHT, dtype=np.float32) * 0.75
+        glow.a[y + 1:y + h:2, x:x + w] = 1.0
+    cv.ao(rect, 0.55)
 
 
-def plate_rows(canvas, rect, rng, base, hi, dark, step=6):
+def paint_blade(cv, glow, part, rects, face, rng):
+    """Jagged crest / spine blades: dark base fading to a violet-lit edge."""
+    rect = rects[face]
+    f = FACE_TINT[face]
     x, y, w, h = rect
-    for iy in range(y, y + h):
-        for ix in range(x, x + w):
-            band = (iy - y) // step
-            local = (iy - y) % step
-            c = base
-            if local == 0:
-                c = dark
-            elif local == 1:
-                c = mix(base, hi, 0.35)
-            if (ix - x + band * 3) % step == 0:
-                c = mix(c, dark, 0.55)
-            canvas.put(ix, iy, jitter(c, 5, rng))
+    for i in range(h):
+        t = i / max(1, h - 1)
+        c = mix(BLADE, mix(BLADE, BLADE_EDGE, 0.85), t)
+        cv.rgb[y + i, x:x + w] = np.array(shade(c, f), dtype=np.float32)
+    cv.a[y:y + h, x:x + w] = 1.0
+    cv.rgb[y:y + h, x:x + w] += rng.integers(-3, 4, size=(h, w, 1)).astype(np.float32)
+    if face in ("left", "right", "front", "back"):
+        glow.rgb[y, x:x + w] = np.array(BLADE_EDGE, dtype=np.float32)
+        glow.a[y, x:x + w] = 1.0
+        glow.rgb[y + 1, x:x + w] = np.array(VOID, dtype=np.float32) * 0.6
+        glow.a[y + 1, x:x + w] = 1.0
+    cv.ao(rect, 0.5)
 
 
-def membrane_texture(canvas, rect, rng, origin_corner="left", mirror=False):
-    """Dark translucent-looking membrane with veins fanning out from the arm."""
+def paint_membrane(cv, glow, part, rects, face, rng):
+    """Dark tattered leather webbed with molten violet ribs (reference wings)."""
+    rect = rects[face]
+    f = FACE_TINT[face]
     x, y, w, h = rect
-    canvas.fill(rect, MEMBRANE, 1.0, 6, rng)
-    # veins fan from one edge toward the opposite trailing edge
-    fan_x = x if origin_corner == "left" else x + w
-    for i in range(7):
-        ty = y + 1 + i * max(1, (h - 2) // 6)
-        steps = max(w, h) * 2
-        for s in range(steps):
-            t = s / steps
-            px = int(fan_x + (w - 2) * t * (1 if fan_x == x else -1))
-            py = int(y + 1 + (ty - y) * (0.15 + 0.85 * t))
-            if y <= py < y + h and x <= px < x + w:
-                canvas.put(px, py, MEMBRANE_VEIN, 200)
-                if s % 9 == 0:
-                    canvas.put(px, py + 1, mix(MEMBRANE_VEIN, MEMBRANE, 0.4), 150)
-    # scalloped trailing edge
-    for ix in range(x, x + w):
-        for dy in range(2):
-            wave = int(1.5 * math.sin((ix - x) * 0.7)) + dy
-            py = y + h - 1 - wave
-            canvas.put(ix, py, mix(MEMBRANE, MEMBRANE_DARK, 0.35))
-    canvas.border(rect, MEMBRANE_DARK, 0.85)
+    cv.fill(rect, MEMBRANE_DEEP, f, noise=6)
+    yy, xx = np.mgrid[0:h, 0:w]
+    # smoky clouds of lighter membrane
+    for _ in range(6):
+        cxp, cyp = rng.uniform(0, w), rng.uniform(0, h)
+        rr = rng.uniform(max(3.0, w * 0.15), max(5.0, w * 0.45))
+        blot = ((xx - cxp) ** 2 + (yy - cyp) ** 2) < rr * rr
+        cv.rgb[y:y + h, x:x + w][blot] = np.array(shade(MEMBRANE_MID, f * 0.8), dtype=np.float32)
+    # radiating ribs from the wrist corner (left edge) fanning right
+    along = xx / max(1, w - 1)
+    for k in range(7):
+        base_y = (k + 0.5) * h / 7.0
+        line = np.abs((yy - (base_y + (along - 0.5) * (h * 0.10))) % (h / 7.0))
+        line = np.minimum(line, (h / 7.0) - line)
+        width = 1.15 - along * 0.45
+        mask = (line < width) & (along > 0.02)
+        reg = cv.rgb[y:y + h, x:x + w]
+        reg[mask] = np.array(shade(MEMBRANE_VEIN, f), dtype=np.float32)
+        cv.rgb[y:y + h, x:x + w] = reg
+        if glow is not None:
+            g = glow.rgb[y:y + h, x:x + w]
+            g[mask] = np.array(CRACK_HOT, dtype=np.float32)
+            glow.rgb[y:y + h, x:x + w] = g
+            ga = glow.a[y:y + h, x:x + w]
+            ga[mask] = 0.9
+            # faint inner haze so the wing glows softly, not flat black
+            haze = (glow.a[y:y + h, x:x + w] < 0.05) & (rng.random((h, w)) > 0.55)
+            g2 = glow.rgb[y:y + h, x:x + w]
+            g2[haze] = np.array(CRACK_HOT, dtype=np.float32) * 0.25
+            glow.rgb[y:y + h, x:x + w] = g2
+            ga[haze] = 0.30
+            glow.a[y:y + h, x:x + w] = ga
+    # bright leading edge
+    edge = xx < max(1, int(w * 0.05))
+    cv.rgb[y:y + h, x:x + w][edge] = np.array(shade(MEMBRANE_VEIN, f * 1.1), dtype=np.float32)
+    if glow is not None:
+        g = glow.rgb[y:y + h, x:x + w]
+        g[edge] = np.array(CRACK_HOT, dtype=np.float32)
+        glow.rgb[y:y + h, x:x + w] = g
+        ga = glow.a[y:y + h, x:x + w]
+        ga[edge] = 0.8
+        glow.a[y:y + h, x:x + w] = ga
+    # torn holes along the trailing edge
+    holes = ((xx > w * 0.5) & (rng.random((h, w)) > 0.80))
+    region_a = cv.a[y:y + h, x:x + w]
+    region_a[holes] = 0.0
+    cv.a[y:y + h, x:x + w] = region_a
+    cv.ao(rect, 0.7)
 
 
-def fin_texture(canvas, rect, rng, vertical=True):
+def paint_eye(cv, glow, part, rects, face, rng):
+    """Molten slit pupil set in a black socket."""
+    rect = rects[face]
     x, y, w, h = rect
-    for iy in range(y, y + h):
-        t = (iy - y) / max(1, h - 1)
-        for ix in range(x, x + w):
-            base = mix(FIN, mix(FIN, BLACK, 0.6), t)
-            canvas.put(ix, iy, jitter(base, 5, rng))
-    # rim highlight on the top/outer edge
-    for ix in range(x, x + w):
-        canvas.put(ix, y, mix(FIN, FIN_EDGE, 0.85))
-        canvas.put(ix, y + 1, mix(FIN, FIN_EDGE, 0.45))
-    canvas.border(rect, BLACK, 0.9)
+    cv.fill(rect, (14, 8, 22), 1.0)
+    yy, xx = np.mgrid[0:h, 0:w]
+    cx, cy = (w - 1) / 2.0, (h - 1) / 2.0
+    norm = (((xx - cx) / max(1.0, w * 0.46)) ** 2 + ((yy - cy) / max(1.0, h * 0.34)) ** 2)
+    iris = norm <= 1.0
+    reg = cv.rgb[y:y + h, x:x + w]
+    reg[iris] = np.array(EYE_GLOW, dtype=np.float32)
+    slit = (np.abs(xx - cx) < max(0.6, w * 0.09)) & iris
+    reg[slit] = np.array((24, 6, 40), dtype=np.float32)
+    cv.rgb[y:y + h, x:x + w] = reg
+    if glow is not None:
+        g = glow.rgb[y:y + h, x:x + w]
+        g[iris] = np.array(EYE_GLOW, dtype=np.float32)
+        glow.rgb[y:y + h, x:x + w] = g
+        ga = glow.a[y:y + h, x:x + w]
+        ga[iris] = 1.0
+        glow.a[y:y + h, x:x + w] = ga
 
 
-def horn_texture(canvas, rect, rng, from_base=True):
+def paint_wingbone(cv, glow, part, rects, face, rng):
+    """Dark leathery wing bones with a faint violet seam."""
+    rect = rects[face]
+    f = FACE_TINT[face]
     x, y, w, h = rect
-    for iy in range(y, y + h):
-        t = (iy - y) / max(1, h - 1)
-        c = mix(HORN, HORN_TIP, t if from_base else 1 - t)
-        for ix in range(x, x + w):
-            canvas.put(ix, iy, jitter(c, 5, rng))
-    # growth ridges
-    for iy in range(y, y + h, 4):
-        for ix in range(x, x + w):
-            canvas.put(ix, iy, shade(mix(HORN, HORN_TIP, 0.4), 0.72))
-    canvas.border(rect, HORN, 0.7)
+    cv.fill(rect, MEMBRANE_DEEP, f * 0.9, noise=4)
+    cv.cracks(rect, glow, f, density=0.10, seed=hash(part["name"] + face) % 9999)
+    cv.ao(rect, 0.85)
+    if glow is not None:
+        g = glow.rgb[y:y + h, x:x + w]
+        g[:] = np.array(shade(CRACK_HOT, f), dtype=np.float32) * 0.22
+        glow.rgb[y:y + h, x:x + w] = g
+        ga = glow.a[y:y + h, x:x + w]
+        ga[:] = np.maximum(ga, 0.34)
+        glow.a[y:y + h, x:x + w] = ga
 
 
-def skull_face(canvas, rect, rng, glow_canvas=None):
-    """Front face of the head: brow ridges, angular eyes and a nasal ridge."""
+def paint_horn(cv, glow, part, rects, face, rng):
+    """Pale bone horns with dark rings, like the reference crown."""
+    rect = rects[face]
+    f = FACE_TINT[face]
     x, y, w, h = rect
-    canvas.fill(rect, SKULL, 1.0, 5, rng)
-    # dorsal plates on the forehead
-    for iy in range(y, y + h // 2):
-        for ix in range(x, x + w):
-            if ((ix - x) + (iy - y)) % 6 == 0:
-                canvas.put(ix, iy, mix(SKULL, SKULL_PLATE, 0.8))
-    # eye sockets (wider, angular, angled forward-down)
-    eye_y = y + int(h * 0.40)
-    eye_w = max(3, int(w * 0.20))
-    eye_h = max(2, int(h * 0.10))
-    for side in (0, 1):
-        ex = x + int(w * (0.14 if side == 0 else 0.60))
-        for iy in range(eye_h):
-            for ix in range(eye_w):
-                # taper the inner corner for an angry slant
-                taper = 1.0 if (side == 0 and ix > eye_w * 0.25) or (side == 1 and ix < eye_w * 0.75) else 0.45
-                if iy / max(1, eye_h - 1) > taper:
-                    continue
-                canvas.put(ex + ix, eye_y + iy, (26, 6, 40))
-                if glow_canvas is not None:
-                    core = mix(VOID, EYE_CORE, 1.0 - (iy / max(1, eye_h - 1)))
-                    glow_canvas.put(ex + ix, eye_y + iy, core, 240)
-        # brow shadow
-        for ix in range(ex - 1, ex + eye_w + 1):
-            canvas.put(ix, eye_y - 1, shade(BLACK, 1.0))
-    # nasal ridge
-    mid = x + w // 2
-    for iy in range(eye_y + eye_h, y + h):
-        canvas.put(mid, iy, mix(SKULL, SKULL_PLATE, 0.55))
-        canvas.put(mid - 1, iy, shade(SKULL, 0.8))
-    canvas.border(rect, BLACK, 0.8)
+    for i in range(h):
+        t = i / max(1, h - 1)
+        c = mix(BONE_SHADE, BONE_TIP, t)
+        cv.rgb[y + i, x:x + w] = np.array(shade(c, f), dtype=np.float32)
+    cv.a[y:y + h, x:x + w] = 1.0
+    for i in range(0, h, 4):
+        cv.rgb[y + i, x:x + w] *= 0.80
+    cv.rgb[y:y + h, x:x + w] += rng.integers(-4, 5, size=(h, w, 1)).astype(np.float32)
+    if face in ("top", "left", "right"):
+        glow.rgb[y:y + h, x:x + w] = np.array(VOID, dtype=np.float32) * 0.35
+        glow.a[y:y + h, x:x + w] = 0.45
+    cv.ao(rect, 0.72)
 
 
-def snout_face(canvas, rect, rng, glow_canvas=None):
+def paint_claw(cv, glow, part, rects, face, rng):
+    rect = rects[face]
+    f = FACE_TINT[face]
     x, y, w, h = rect
-    canvas.fill(rect, SKULL, 0.95, 5, rng)
-    # nostrils
-    for fx in (0.28, 0.66):
-        nx = x + int(w * fx)
-        ny = y + int(h * 0.30)
-        for iy in range(2):
-            for ix in range(2):
-                canvas.put(nx + ix, ny + iy, shade(BLACK, 0.9))
-    # plate seams
-    for iy in range(y, y + h, 5):
-        for ix in range(x, x + w):
-            canvas.put(ix, iy, shade(SKULL, 0.7), 120)
-    canvas.border(rect, BLACK, 0.85)
+    for i in range(h):
+        t = i / max(1, h - 1)
+        cv.rgb[y + i, x:x + w] = np.array(shade(mix((58, 52, 62), BONE, t), f), dtype=np.float32)
+    cv.a[y:y + h, x:x + w] = 1.0
 
 
-def paint_part(canvas, glow, part, uv, armored=False):
-    name = part["name"]
-    painter = part["painter"]
-    box = part["box"]
-    if box is None or painter == "pivot":
-        return
-    w, h, d = int(box[3]), int(box[4]), int(box[5])
-    u, v = uv[0], uv[1]
-    rects = face_rects(u, v, w, h, d)
-    rng = canvas.rng
-
-    if painter == "none":
-        return
-
-    for face, rect in rects.items():
-        if rect[2] <= 0 or rect[3] <= 0:
-            continue
-        f = FACE_SHADE[face]
-        if painter in ("body", "limb", "foot"):
-            base = {"body": HIDE, "limb": LIMB, "foot": FOOT}[painter]
-            light = HIDE_LIGHT
-            dark = SCALE_EDGE
-            scales(canvas, rect, rng, shade(base, f), shade(light, f), shade(dark, f))
-            if face == "top" and painter == "body":
-                # spine groove along the middle of the back
-                mx = rect[0] + rect[2] // 2
-                for iy in range(rect[1], rect[1] + rect[3]):
-                    canvas.put(mx, iy, shade(RIDGE, f))
-                    canvas.put(mx - 1, iy, shade(mix(RIDGE, HIDE, 0.5), f))
-                    canvas.put(mx + 1, iy, shade(mix(RIDGE, HIDE, 0.5), f))
-                    if glow is not None and iy % 3 == 0:
-                        glow.put(mx, iy, VOID, 120)
-            if face == "bottom" and painter == "body":
-                scales(canvas, rect, rng, shade(BELLY, f), shade(mix(BELLY, HIDE_LIGHT, 0.6), f),
-                       shade(BELLY_LINE, f), cw=7, ch=4)
-            soft_ao(canvas, rect, 0.82)
-        elif painter == "belly":
-            plate_rows(canvas, rect, rng, shade(BELLY, f), shade(mix(BELLY, HIDE_LIGHT, 0.7), f),
-                       shade(BELLY_LINE, f), step=4)
-            soft_ao(canvas, rect, 0.86)
-        elif painter == "ridge":
-            for iy in range(rect[1], rect[1] + rect[3]):
-                t = (iy - rect[1]) / max(1, rect[3] - 1)
-                c = mix(RIDGE, RIDGE_HI, t)
-                for ix in range(rect[0], rect[0] + rect[2]):
-                    canvas.put(ix, iy, jitter(shade(c, f), 6, rng))
-            canvas.border(rect, BLACK, 0.9)
-        elif painter == "fin":
-            fin_texture(canvas, rect, rng)
-            if glow is not None:
-                # glowing edge along the top of the sail
-                for ix in range(rect[0], rect[0] + rect[2]):
-                    glow.put(ix, rect[1], FIN_EDGE, 130)
-        elif painter == "membrane":
-            membrane_texture(canvas, rect, rng, origin_corner="left" if not part["mirror"] else "right")
-            if glow is not None:
-                for ix in range(rect[0], rect[0] + rect[2]):
-                    if (ix - rect[0]) % 3 == 0:
-                        glow.put(ix, rect[1], VOID, 70)
-        elif painter == "horn":
-            horn_texture(canvas, rect, rng)
-            if glow is not None and rect[3] > 3:
-                for ix in range(rect[0], rect[0] + rect[2]):
-                    glow.put(ix, rect[1], VOID_BRIGHT, 90)
-        elif painter == "skull":
-            if face == "front" and name == "head":
-                skull_face(canvas, rect, rng, glow)
-            elif face == "front" and name == "snout":
-                snout_face(canvas, rect, rng, glow)
-            else:
-                scales(canvas, rect, rng, shade(SKULL, f), shade(SKULL_PLATE, f), shade(BLACK, f),
-                       cw=7, ch=5)
-            canvas.border(rect, BLACK, 0.85)
-        elif painter == "jaw":
-            canvas.fill(rect, JAW, f, 6, rng)
-            # teeth along the front edge of the lower jaw
-            if face in ("left", "right", "front"):
-                ty = rect[1] + 1
-                for ix in range(rect[0] + 1, rect[0] + rect[2] - 1, 2):
-                    canvas.put(ix, ty, mix(HORN_TIP, (255, 255, 255), 0.4))
-            canvas.border(rect, BLACK, 0.85)
-        elif painter == "saddle":
-            canvas.fill(rect, LEATHER, f, 7, rng)
-            if face == "top":
-                plate_rows(canvas, rect, rng, shade(LEATHER_HI, f), shade(mix(LEATHER_HI, VOID, 0.3), f),
-                           shade(LEATHER, f), step=5)
-                for ix in range(rect[0] + 1, rect[0] + rect[2] - 1, 4):
-                    canvas.put(ix, rect[1] + rect[3] // 2, mix(VOID, LEATHER, 0.25))
-            for ix in range(rect[0], rect[0] + rect[2]):
-                canvas.put(ix, rect[1], mix(LEATHER_HI, VOID, 0.4))
-            canvas.border(rect, shade(LEATHER, 0.6), 0.9)
-        elif painter == "armor":
-            plate_rows(canvas, rect, rng, shade(STEEL, f), shade(STEEL_HI, f), shade(STEEL_DARK, f), step=7)
-            # glowing rune band
-            if face in ("left", "right", "front", "back", "top"):
-                ry = rect[1] + rect[3] // 2
-                for ix in range(rect[0] + 1, rect[0] + rect[2] - 1):
-                    if (ix - rect[0]) % 3 != 2:
-                        canvas.put(ix, ry, mix(RUNE, STEEL, 0.15))
-                        if glow is not None:
-                            glow.put(ix, ry, RUNE, 190)
-            # rivets
-            for iy in range(rect[1] + 2, rect[1] + rect[3] - 1, 9):
-                for ix in range(rect[0] + 2, rect[0] + rect[2] - 1, 9):
-                    canvas.put(ix, iy, STEEL_HI)
-            canvas.border(rect, STEEL_DARK, 0.85)
+def paint_tooth(cv, glow, part, rects, face, rng):
+    rect = rects[face]
+    f = FACE_TINT[face]
+    cv.fill(rect, BONE, f, noise=6)
+    cv.ao(rect, 0.7)
 
 
-def build_atlas(armored=False):
+def paint_skull(cv, glow, part, rects, face, rng):
+    rect = rects[face]
+    f = FACE_TINT[face]
+    x, y, w, h = rect
+    cv.fill(rect, SKULL, f, noise=4)
+    # angular plate facets
+    for i in range(h):
+        for j in range(0, w, 5):
+            if ((i + j) // 4) % 3 == 0:
+                cv.rgb[y + i, x + j] = np.array(shade(SKULL_PLATE, f), dtype=np.float32)
+    if face == "front" and part["name"] in ("head", "skull_top"):
+        # deep-set, slanted eyes + brow ridge
+        eye_y = y + max(1, int(h * 0.42))
+        eye_w = max(2, int(w * 0.20))
+        eye_h = max(1, int(h * 0.10))
+        for side in (0, 1):
+            ex = x + int(w * (0.13 if side == 0 else 0.67))
+            for iy in range(eye_h):
+                for ix in range(eye_w):
+                    taper = 1.0 if (side == 0 and ix >= eye_w * 0.3) or (side == 1 and ix <= eye_w * 0.7) else 0.4
+                    if iy / max(1, eye_h - 1) > taper:
+                        continue
+                    cv.rgb[eye_y + iy, ex + ix] = np.array((30, 8, 46), dtype=np.float32)
+                    glow.rgb[eye_y + iy, ex + ix] = np.array(mix(VOID, EYE_CORE, 1.0 - iy / max(1, eye_h - 1)),
+                                                              dtype=np.float32)
+                    glow.a[eye_y + iy, ex + ix] = 1.0
+            cv.rgb[eye_y - 1, ex - 1:ex + eye_w + 1] *= 0.35
+    if face == "front":
+        # snout seam
+        mid = x + w // 2
+        cv.rgb[y + int(h * 0.45):y + h, mid] = np.array(shade(SKULL_PLATE, f * 0.8), dtype=np.float32)
+    cv.cracks(rect, glow, f, density=0.05, seed=hash(part["name"] + face) % 9999)
+    cv.ao(rect, 0.72)
+
+
+def paint_muzzle(cv, glow, part, rects, face, rng):
+    rect = rects[face]
+    f = FACE_TINT[face]
+    x, y, w, h = rect
+    cv.fill(rect, MUZZLE, f, noise=4)
+    for i in range(h):
+        for j in range(0, w, 4):
+            if ((i * 3 + j) // 5) % 4 == 0:
+                cv.rgb[y + i, x + j] = np.array(shade(SKULL_PLATE, f), dtype=np.float32)
+    if face == "front":
+        for fx in (0.24, 0.64):
+            nx = x + int(w * fx)
+            ny = y + int(h * 0.34)
+            cv.rgb[ny:ny + 2, nx:nx + 2] = np.array((14, 10, 20), dtype=np.float32)
+    cv.cracks(rect, glow, f, density=0.04, seed=hash(part["name"]) % 9999)
+    cv.ao(rect, 0.7)
+
+
+def paint_jaw(cv, glow, part, rects, face, rng):
+    rect = rects[face]
+    f = FACE_TINT[face]
+    x, y, w, h = rect
+    cv.fill(rect, JAW, f, noise=3)
+    if face in ("top", "bottom"):
+        # gums + palate teeth row
+        cv.rgb[y, x:x + w] = np.array(shade((70, 24, 44), f), dtype=np.float32)
+        for j in range(0, w, 2):
+            cv.rgb[y + 1, x + j] = np.array(shade(BONE, f), dtype=np.float32)
+    cv.ao(rect, 0.6)
+
+
+def paint_limb(cv, glow, part, rects, face, rng):
+    rect = rects[face]
+    f = FACE_TINT[face]
+    cv.scales(rect, LIMB, mix(LIMB, HIDE_HI, 0.7), EDGE_DARK, f, cw=9, ch=7)
+    cv.cracks(rect, glow, f, density=0.06, seed=hash(part["name"] + face) % 9999)
+    cv.ao(rect, 0.66)
+
+
+def paint_foot(cv, glow, part, rects, face, rng):
+    rect = rects[face]
+    f = FACE_TINT[face]
+    cv.scales(rect, FOOT, HIDE_MID, EDGE_DARK, f, cw=8, ch=6)
+    cv.ao(rect, 0.6)
+
+
+def paint_small(cv, glow, part, rects, face, rng):
+    rect = rects[face]
+    cv.fill(rect, (12, 8, 16), FACE_TINT[face])
+
+
+def paint_saddle(cv, glow, part, rects, face, rng):
+    rect = rects[face]
+    f = FACE_TINT[face]
+    x, y, w, h = rect
+    cv.fill(rect, LEATHER, f, noise=5)
+    if face == "top":
+        for i in range(0, h, 3):
+            cv.rgb[y + i, x:x + w] = np.array(shade(LEATHER_HI, f), dtype=np.float32)
+        mid = y + h // 2
+        cv.rgb[mid, x:x + w] = np.array(shade(mix(LEATHER_HI, VOID, 0.35), f), dtype=np.float32)
+        glow.rgb[mid, x + 1:x + w - 1] = np.array(VOID, dtype=np.float32) * 0.5
+        glow.a[mid, x + 1:x + w - 1] = 0.6
+    cv.rgb[y, x:x + w] = np.array(shade(LEATHER_HI, f * 1.2), dtype=np.float32)
+    cv.ao(rect, 0.66)
+
+
+def paint_armor(cv, glow, part, rects, face, rng):
+    rect = rects[face]
+    f = FACE_TINT[face]
+    x, y, w, h = rect
+    cv.fill(rect, STEEL, f, noise=4)
+    for i in range(0, h, 5):
+        cv.rgb[y + i, x:x + w] = np.array(shade(STEEL_DARK, f), dtype=np.float32)
+        cv.rgb[y + i + 1, x:x + w] = np.array(shade(STEEL_HI, f * 0.85), dtype=np.float32)
+    if face in ("top", "left", "right", "front", "back"):
+        ry = y + h // 2
+        for j in range(0, w, 3):
+            cv.rgb[ry, x + j] = np.array(shade(RUNE, f), dtype=np.float32)
+            glow.rgb[ry, x + j] = np.array(RUNE, dtype=np.float32) * 0.9
+            glow.a[ry, x + j] = 1.0
+    for i in range(2, h, 9):
+        for j in range(2, w, 9):
+            cv.rgb[y + i, x + j] = np.array(STEEL_HI, dtype=np.float32)
+    cv.ao(rect, 0.68)
+
+
+PAINTERS = {
+    "hide": paint_hide,
+    "belly": paint_belly,
+    "ridge": paint_ridge,
+    "blade": paint_blade,
+    "membrane": paint_membrane,
+    "eye": paint_eye,
+    "wingbone": paint_wingbone,
+    "horn": paint_horn,
+    "claw": paint_claw,
+    "tooth": paint_tooth,
+    "skull": paint_skull,
+    "muzzle": paint_muzzle,
+    "jaw": paint_jaw,
+    "limb": paint_limb,
+    "foot": paint_foot,
+    "small": paint_small,
+    "saddle": paint_saddle,
+    "armor": paint_armor,
+}
+
+
+def build_atlas(armoured=False):
     uv = json.load(open(UV_FILE))
-    canvas = Canvas(TEXTURE_SIZE)
-    glow = Canvas(TEXTURE_SIZE)
+    cv = Canvas(TEXTURE_SIZE, seed=4242)
+    glow = Canvas(TEXTURE_SIZE, seed=99)
     for part in PARTS:
-        paint_part(canvas, glow, part, uv[part["name"]], armored)
-    return canvas.img, glow.img
+        box = part["box"]
+        if box is None:
+            continue
+        painter = part["painter"]
+        if painter == "pivot":
+            continue
+        w, h, d = int(round(box[3])), int(round(box[4])), int(round(box[5]))
+        if w <= 0 or h <= 0 or d <= 0:
+            continue
+        u, v = uv[part["name"]][0], uv[part["name"]][1]
+        rects = face_rects(u, v, w, h, d)
+        rng = np.random.default_rng(abs(hash(part["name"])) % (2 ** 31))
+        for face in rects:
+            if armoured and painter in ("hide", "belly", "limb", "foot"):
+                paint_armor(cv, glow, part, rects, face, rng)
+            else:
+                PAINTERS[painter](cv, glow, part, rects, face, rng)
+    return cv.image(), glow.image()
 
 
+# ------------------------------------------------------------------- items
 def paint_items():
     item_dir = os.path.join(ASSETS, "item")
     os.makedirs(item_dir, exist_ok=True)
 
-    # ---- Void Shard: a faceted crystal with an inner void glow
     shard = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
     d = ImageDraw.Draw(shard)
-    d.polygon([(8, 0), (13, 5), (12, 13), (8, 15), (4, 13), (3, 5)], fill=(14, 9, 21))
-    d.polygon([(8, 1), (12, 5), (11, 12), (8, 14), (5, 12), (4, 5)], fill=(46, 26, 74))
-    d.polygon([(8, 1), (12, 5), (8, 9)], fill=(96, 54, 150))
-    d.polygon([(8, 1), (4, 5), (8, 9)], fill=(64, 34, 102))
-    d.polygon([(8, 9), (11, 12), (8, 14)], fill=(38, 20, 60))
-    d.polygon([(8, 9), (5, 12), (8, 14)], fill=(28, 15, 46))
-    for p in [(8, 3), (8, 4), (7, 5), (9, 6), (8, 8)]:
+    d.polygon([(8, 0), (13, 5), (12, 13), (8, 15), (4, 13), (3, 5)], fill=(12, 8, 18))
+    d.polygon([(8, 1), (12, 5), (11, 12), (8, 14), (5, 12), (4, 5)], fill=(44, 24, 70))
+    d.polygon([(8, 1), (12, 5), (8, 9)], fill=(104, 56, 164))
+    d.polygon([(8, 1), (4, 5), (8, 9)], fill=(68, 34, 110))
+    d.polygon([(8, 9), (11, 12), (8, 14)], fill=(40, 20, 64))
+    d.polygon([(8, 9), (5, 12), (8, 14)], fill=(26, 13, 44))
+    for p in [(8, 3), (8, 4), (7, 6), (9, 7), (8, 10)]:
         shard.putpixel(p, (*VOID_BRIGHT, 255))
     shard.putpixel((8, 6), (*VOID_PALE, 255))
     shard.putpixel((4, 5), (*VOID, 255))
-    shard.putpixel((11, 12), (*RUNE, 255))
     shard.save(os.path.join(item_dir, "void_shard.png"))
 
-    # ---- Void Saddle
     saddle = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
     d = ImageDraw.Draw(saddle)
-    d.rounded_rectangle([1, 6, 14, 12], radius=2, fill=(30, 17, 24))
-    d.rounded_rectangle([2, 7, 13, 11], radius=2, fill=(66, 38, 56))
+    d.rounded_rectangle([1, 6, 14, 12], radius=2, fill=(28, 15, 22))
+    d.rounded_rectangle([2, 7, 13, 11], radius=2, fill=(62, 34, 52))
     d.line([(2, 9), (13, 9)], fill=(120, 64, 160))
-    d.rectangle([6, 2, 9, 6], fill=(24, 22, 32))
+    d.rectangle([6, 2, 9, 6], fill=(22, 20, 30))
     d.rectangle([7, 3, 8, 5], fill=(*VOID_BRIGHT, 255))
-    d.line([(1, 12), (0, 15)], fill=(40, 24, 34))
-    d.line([(14, 12), (15, 15)], fill=(40, 24, 34))
-    d.point([(3, 8), (12, 8)], fill=(150, 88, 196))
     saddle.save(os.path.join(item_dir, "void_saddle.png"))
 
-    # ---- Void Dragon Armor
     armor = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
     d = ImageDraw.Draw(armor)
-    d.polygon([(8, 0), (15, 5), (13, 15), (3, 15), (1, 5)], fill=(20, 19, 30))
-    d.polygon([(8, 1), (14, 5), (12, 14), (4, 14), (2, 5)], fill=(48, 46, 68))
-    d.polygon([(8, 1), (14, 5), (8, 8)], fill=(72, 70, 98))
-    d.line([(8, 4), (8, 13)], fill=(30, 26, 44))
+    d.polygon([(8, 0), (15, 5), (13, 15), (3, 15), (1, 5)], fill=(18, 17, 26))
+    d.polygon([(8, 1), (14, 5), (12, 14), (4, 14), (2, 5)], fill=(46, 44, 66))
+    d.polygon([(8, 1), (14, 5), (8, 8)], fill=(70, 68, 96))
     d.polygon([(8, 5), (11, 8), (8, 12), (5, 8)], fill=(*RUNE, 255))
     d.polygon([(8, 6), (10, 8), (8, 11), (6, 8)], fill=(*VOID_BRIGHT, 255))
-    armor.putpixel((8, 8), (*VOID_PALE, 255))
-    for p in [(3, 6), (12, 7), (4, 12), (11, 12)]:
-        armor.putpixel(p, (120, 116, 150, 255))
     armor.save(os.path.join(item_dir, "void_armor.png"))
 
 
 def paint_hud_icons():
     outdir = os.path.join(ASSETS, "gui")
     os.makedirs(outdir, exist_ok=True)
-    spec = {
-        "breath": lambda d, c: (d.line([(7, 25), (25, 9)], fill=c, width=3),
-                                d.ellipse([20, 4, 28, 12], fill=c)),
+    shapes = {
+        "breath": lambda d, c: (d.line([(7, 25), (25, 9)], fill=c, width=3), d.ellipse([20, 4, 28, 12], fill=c)),
         "rush": lambda d, c: d.polygon([(5, 7), (26, 16), (5, 25), (11, 16)], fill=c),
         "flap": lambda d, c: (d.arc([3, 9, 29, 27], start=200, end=340, fill=c, width=3),
                               d.line([(16, 13), (16, 23)], fill=c, width=3)),
         "roar": lambda d, c: (d.ellipse([10, 10, 22, 22], outline=c, width=2),
-                              d.ellipse([14, 14, 18, 18], fill=c),
-                              [d.arc([16 - r, 16 - r, 16 + r, 16 + r], start=300, end=60, fill=c)
-                               for r in (5, 8, 11)]),
+                              d.ellipse([14, 14, 18, 18], fill=c)),
         "portal": lambda d, c: (d.ellipse([6, 6, 26, 26], outline=c, width=3),
                                 d.ellipse([12, 12, 20, 20], fill=c)),
+        "godstorm": lambda d, c: (d.line([(16, 3), (10, 15)], fill=c, width=3),
+                                  d.line([(10, 15), (18, 15)], fill=c, width=3),
+                                  d.line([(18, 15), (12, 28)], fill=c, width=3)),
+        "ascend": lambda d, c: (d.polygon([(16, 3), (23, 14), (16, 28), (9, 14)], fill=None, outline=c),
+                                d.line([(16, 6), (16, 25)], fill=c, width=2)),
     }
-    for name, fn in spec.items():
+    for name, fn in shapes.items():
         img = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
         d = ImageDraw.Draw(img)
-        d.ellipse([1, 1, 30, 30], fill=(14, 9, 21, 235))
-        d.ellipse([1, 1, 30, 30], outline=(80, 50, 118, 255), width=1)
+        d.ellipse([1, 1, 30, 30], fill=(12, 8, 18, 235))
+        d.ellipse([1, 1, 30, 30], outline=(82, 48, 120, 255), width=1)
         fn(d, (*VOID_BRIGHT, 255))
-        img = img.filter(ImageFilter.SMOOTH)
-        img.save(os.path.join(outdir, f"ability_{name}.png"))
+        img.filter(ImageFilter.SMOOTH).save(os.path.join(outdir, f"ability_{name}.png"))
 
 
 def main():
     entity_dir = os.path.join(ASSETS, "entity")
     os.makedirs(entity_dir, exist_ok=True)
-
-    base, glow = build_atlas(armored=False)
+    base, glow = build_atlas(False)
     base.save(os.path.join(entity_dir, "void_dragon.png"))
     glow.save(os.path.join(entity_dir, "void_dragon_glow.png"))
-
-    armored, armor_glow = build_atlas(armored=True)
+    armored, armor_glow = build_atlas(True)
     armored.save(os.path.join(entity_dir, "void_dragon_armored.png"))
-
     paint_items()
     paint_hud_icons()
-    print("textures written:", ASSETS, "(atlas", TEXTURE_SIZE, "px)")
+    print("textures written ->", entity_dir)
 
 
 if __name__ == "__main__":

@@ -37,5 +37,17 @@ public class ClientGameEvents {
         while (ClientModEvents.PORTAL.consumeClick()) {
             PacketDistributor.sendToServer(new AbilityPayload(4));
         }
+        while (ClientModEvents.STORM.consumeClick()) {
+            PacketDistributor.sendToServer(new AbilityPayload(VoidDragonEntity.ABILITY_GODSTORM));
+        }
+        while (ClientModEvents.SIZE_UP.consumeClick()) {
+            PacketDistributor.sendToServer(new AbilityPayload(VoidDragonEntity.ABILITY_SIZE_UP));
+        }
+        while (ClientModEvents.SIZE_DOWN.consumeClick()) {
+            PacketDistributor.sendToServer(new AbilityPayload(VoidDragonEntity.ABILITY_SIZE_DOWN));
+        }
+        while (ClientModEvents.SIZE_AUTO.consumeClick()) {
+            PacketDistributor.sendToServer(new AbilityPayload(VoidDragonEntity.ABILITY_SIZE_AUTO));
+        }
     }
 }

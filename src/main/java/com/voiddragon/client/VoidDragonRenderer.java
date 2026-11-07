@@ -11,6 +11,14 @@ import net.minecraft.client.renderer.entity.layers.EyesLayer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 
+/**
+ * Renders the Void Dragon.
+ *
+ * <p>The model is authored with its feet exactly on y=0, so scaling is a plain
+ * uniform multiply: no part of the dragon can ever dip below the block it stands
+ * on. The shadow radius follows the same scale, which keeps a Dragon God's
+ * footprint believable instead of a dragon-sized shadow under an infant.</p>
+ */
 public class VoidDragonRenderer extends MobRenderer<VoidDragonEntity, VoidDragonModel> {
     private static final ResourceLocation TEXTURE =
             ResourceLocation.fromNamespaceAndPath(VoidDragonMod.MODID, "textures/entity/void_dragon.png");
@@ -19,9 +27,12 @@ public class VoidDragonRenderer extends MobRenderer<VoidDragonEntity, VoidDragon
     private static final ResourceLocation ARMORED =
             ResourceLocation.fromNamespaceAndPath(VoidDragonMod.MODID, "textures/entity/void_dragon_armored.png");
 
+    /** The authored model is 1.0 scale = ~3 blocks tall; base shadow radius. */
+    private static final float BASE_SHADOW = 2.2F;
+
     public VoidDragonRenderer(EntityRendererProvider.Context context) {
-        super(context, new VoidDragonModel(context.bakeLayer(VoidDragonModel.LAYER)), 2.1F);
-        // Fullbright emissive layer: glowing eyes, Void veins, wing veins, horn tips.
+        super(context, new VoidDragonModel(context.bakeLayer(VoidDragonModel.LAYER)), BASE_SHADOW);
+        // Fullbright emissive layer: glowing eyes, void veins, wing ribs, horn tips.
         this.addLayer(new EyesLayer<VoidDragonEntity, VoidDragonModel>(this) {
             @Override
             public RenderType renderType() {
@@ -39,21 +50,25 @@ public class VoidDragonRenderer extends MobRenderer<VoidDragonEntity, VoidDragon
     protected void setupRotations(VoidDragonEntity entity, PoseStack poseStack, float bob, float yBodyRot,
                                   float partialTick, float scale) {
         super.setupRotations(entity, poseStack, bob, yBodyRot, partialTick, scale);
-        // MobRenderer clamps the body pitch to +/-90; a flying dragon banks with its look direction.
+        // A flying dragon pitches with its look direction; MobRenderer would clamp it.
         float fly = entity.getFlyProgress(partialTick);
         if (fly > 0.01F) {
             float pitch = Mth.lerp(partialTick, entity.xRotO, entity.getXRot());
-            poseStack.translate(0.0F, 1.2F, 0.0F);
-            poseStack.mulPose(Axis.XP.rotationDegrees(pitch * fly * 0.85F));
-            poseStack.translate(0.0F, -1.2F, 0.0F);
+            poseStack.mulPose(Axis.XP.rotationDegrees(pitch * fly * 0.55F));
         }
     }
 
     @Override
     protected void scale(VoidDragonEntity entity, PoseStack poseStack, float partialTick) {
-        // The model is built at ~2.3 blocks tall; the entity hitbox is 2.4 blocks, so a
-        // single uniform factor lines the saddle up with the passenger attachment.
-        poseStack.scale(1.0F, 1.0F, 1.0F);
+        float scale = entity.getDragonScale();
+        // A whisper of squash on the landing frame makes a heavy dragon feel heavy.
+        float land = entity.isFlying() ? 0.0F : entity.getFlyProgress(partialTick);
+        poseStack.scale(scale, scale * (1.0F - land * 0.02F), scale);
+    }
+
+    @Override
+    public float getShadowRadius(VoidDragonEntity entity) {
+        return BASE_SHADOW * Math.min(3.0F, entity.getDragonScale());
     }
 
     @Override

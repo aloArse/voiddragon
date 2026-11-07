@@ -3,6 +3,7 @@ package com.voiddragon.entity;
 import com.voiddragon.ModItems;
 import com.voiddragon.ModTriggers;
 import com.voiddragon.VoidDragonConfig;
+import com.voiddragon.entity.DragonStage;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustColorTransitionOptions;
@@ -29,7 +30,9 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.AgeableMob;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.SpawnPlacements;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.LivingEntity;
@@ -96,13 +99,11 @@ public class VoidDragonEntity extends TamableAnimal {
 
     // ---------------------------------------------------------------- growth / bond
 
-    public static final int GROWTH_HATCHLING = 0;
-    public static final int GROWTH_JUVENILE = 1;
-    public static final int GROWTH_ADULT = 2;
+    /** Total growth points. Every kill, every shard and every minute ridden adds to it. */
+    public static final int MAX_GROWTH = DragonStage.GOD.requiredGrowth;
 
-    /** Growth points needed to reach the next stage. */
-    public static final int[] GROWTH_REQUIREMENT = {12, 30};
-    public static final float[] GROWTH_SCALE = {0.42F, 0.72F, 1.0F};
+    /** Legacy alias kept for the egg-hatching event. */
+    public static final int GROWTH_HATCHLING = 0;
 
     public static final int BOND_RUSH = 25;
     public static final int BOND_FLIGHT = 45;
@@ -112,6 +113,14 @@ public class VoidDragonEntity extends TamableAnimal {
     public static final float MAX_ENERGY = 100.0F;
 
     private static final EntityDataAccessor<Integer> DATA_GROWTH =
+            SynchedEntityData.defineId(VoidDragonEntity.class, EntityDataSerializers.INT);
+    /** 0 = follow the automatic size curve, otherwise a player-chosen multiplier. */
+    private static final EntityDataAccessor<Float> DATA_SIZE_OVERRIDE =
+            SynchedEntityData.defineId(VoidDragonEntity.class, EntityDataSerializers.FLOAT);
+    /** Lifetime kills, the achievement half of growth. */
+    private static final EntityDataAccessor<Integer> DATA_KILLS =
+            SynchedEntityData.defineId(VoidDragonEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> DATA_DRAGON_KILLS =
             SynchedEntityData.defineId(VoidDragonEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_BOND =
             SynchedEntityData.defineId(VoidDragonEntity.class, EntityDataSerializers.INT);
@@ -152,6 +161,7 @@ public class VoidDragonEntity extends TamableAnimal {
     private int dashCooldown;
     private int roarCooldown;
     private int portalCooldown;
+    private int stormCooldown;
     private int dashTicks;
     private int flyTicks;
     private int bondTimer;
@@ -230,7 +240,10 @@ public class VoidDragonEntity extends TamableAnimal {
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
-        builder.define(DATA_GROWTH, GROWTH_HATCHLING);
+        builder.define(DATA_GROWTH, 0);
+        builder.define(DATA_SIZE_OVERRIDE, 0.0F);
+        builder.define(DATA_KILLS, 0);
+        builder.define(DATA_DRAGON_KILLS, 0);
         builder.define(DATA_BOND, 0);
         builder.define(DATA_FLYING, false);
         builder.define(DATA_BREATHING, false);
@@ -248,7 +261,10 @@ public class VoidDragonEntity extends TamableAnimal {
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
-        tag.putInt("Growth", getGrowth());
+        tag.putInt("Growth", this.entityData.get(DATA_GROWTH));
+        tag.putFloat("SizeOverride", getSizeOverride());
+        tag.putInt("Kills", getKills());
+        tag.putInt("DragonKills", getDragonKills());
         tag.putInt("GrowthPoints", this.growthPoints);
         tag.putInt("Bond", getBond());
         tag.putFloat("Energy", this.energy);
@@ -260,7 +276,10 @@ public class VoidDragonEntity extends TamableAnimal {
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
-        setGrowth(tag.getInt("Growth"));
+        this.entityData.set(DATA_GROWTH, Mth.clamp(tag.getInt("Growth"), 0, MAX_GROWTH));
+        this.entityData.set(DATA_SIZE_OVERRIDE, Mth.clamp(tag.getFloat("SizeOverride"), 0.0F, MAX_SIZE_MULT));
+        this.entityData.set(DATA_KILLS, tag.getInt("Kills"));
+        this.entityData.set(DATA_DRAGON_KILLS, tag.getInt("DragonKills"));
         this.growthPoints = tag.getInt("GrowthPoints");
         setBond(tag.getInt("Bond"));
         this.energy = tag.contains("Energy") ? tag.getFloat("Energy") : MAX_ENERGY;
@@ -274,37 +293,92 @@ public class VoidDragonEntity extends TamableAnimal {
 
     // ---------------------------------------------------------------- state accessors
 
+    /** Raw growth points. Unlike the stage, this keeps climbing at the final stage. */
     public int getGrowth() {
         return this.entityData.get(DATA_GROWTH);
     }
 
-    public void setGrowth(int growth) {
-        int clamped = Mth.clamp(growth, GROWTH_HATCHLING, GROWTH_ADULT);
-        if (clamped != getGrowth()) {
-            this.entityData.set(DATA_GROWTH, clamped);
-            this.growthPoints = 0;
-            this.applyGrowthAttributes();
+    /** The stage the current growth points put the dragon in. */
+    public DragonStage getStage() {
+        return DragonStage.forGrowth(getGrowth());
+    }
+
+    public int getKills() {
+        return this.entityData.get(DATA_KILLS);
+    }
+
+    public int getDragonKills() {
+        return this.entityData.get(DATA_DRAGON_KILLS);
+    }
+
+    /** Largest multiplier the size slider allows. */
+    public static final float MAX_SIZE_MULT = 3.0F;
+    public static final float MIN_SIZE_MULT = 0.35F;
+
+    /** Player-chosen size multiplier, or 0 when the automatic curve is in charge. */
+    public float getSizeOverride() {
+        return this.entityData.get(DATA_SIZE_OVERRIDE);
+    }
+
+    /**
+     * 0 clears the override (automatic size). Anything else is clamped so the
+     * model can never be inflated past what the hitbox can describe.
+     */
+    public void setSizeOverride(float value) {
+        float clamped = value <= 0.0F ? 0.0F : Mth.clamp(value, MIN_SIZE_MULT, MAX_SIZE_MULT);
+        if (clamped != getSizeOverride()) {
+            this.entityData.set(DATA_SIZE_OVERRIDE, clamped);
             this.refreshDimensions();
         }
     }
 
-    public int getGrowthPoints() {
-        return this.growthPoints;
+    /** Automatic size for the current stage, nudged up by lifetime kills. */
+    public float getAutomaticScale() {
+        DragonStage stage = getStage();
+        float base = stage.baseScale;
+        // every 40 lifetime kills adds 4% until the next stage's ceiling
+        float kills = Math.min(0.20F, getDragonKills() * 0.02F + getKills() * 0.004F);
+        float cap = stage.next() == null ? MAX_SIZE_MULT : stage.next().baseScale * 0.96F;
+        return Math.min(cap, base * (1.0F + kills));
+    }
+
+    /** The single size number everything else (render, hitbox, seat, reach) uses. */
+    public float getDragonScale() {
+        float override = getSizeOverride();
+        return override > 0.0F ? override : getAutomaticScale();
+    }
+
+    /** Kept for the renderer/HUD API: the effective render scale. */
+    @Override
+    public float getScale() {
+        return getDragonScale();
     }
 
     public boolean isAdultDragon() {
-        return getGrowth() >= GROWTH_ADULT;
+        return getStage().abilityTier >= 2;
     }
 
-    /** Feeds growth points, returns true when the dragon grows up a stage. */
+    public boolean isFlightCapable() {
+        return getStage().canFly();
+    }
+
+    /** Adds growth points; returns true when the dragon stepped into a new stage. */
     public boolean addGrowth(int points) {
-        if (isAdultDragon()) {
+        if (points <= 0) {
             return false;
         }
-        this.growthPoints += points;
-        int needed = GROWTH_REQUIREMENT[Mth.clamp(getGrowth(), 0, GROWTH_REQUIREMENT.length - 1)];
-        if (this.growthPoints >= needed) {
-            setGrowth(getGrowth() + 1);
+        int before = getGrowth();
+        if (before >= MAX_GROWTH) {
+            this.entityData.set(DATA_GROWTH, MAX_GROWTH);
+            return false;
+        }
+        int after = Math.min(MAX_GROWTH, before + points);
+        this.entityData.set(DATA_GROWTH, after);
+        DragonStage oldStage = DragonStage.forGrowth(before);
+        DragonStage newStage = DragonStage.forGrowth(after);
+        if (newStage != oldStage) {
+            applyGrowthAttributes();
+            this.refreshDimensions();
             return true;
         }
         return false;
@@ -438,12 +512,6 @@ public class VoidDragonEntity extends TamableAnimal {
         return this.flapSpeed;
     }
 
-    /** Base render scale — hatchlings and juveniles are visibly smaller. */
-    @Override
-    public float getScale() {
-        return GROWTH_SCALE[Mth.clamp(getGrowth(), 0, GROWTH_SCALE.length - 1)];
-    }
-
     public Vec3 getMouthPos() {
         Vec3 look = this.calculateViewVector(this.getXRot(), this.getYHeadRot());
         double up = this.getBbHeight() * (isFlying() ? 0.58D : 0.80D);
@@ -453,11 +521,15 @@ public class VoidDragonEntity extends TamableAnimal {
     // ---------------------------------------------------------------- growth driven stats
 
     private void applyGrowthAttributes() {
-        int growth = getGrowth();
-        setBaseIfPresent(Attributes.MAX_HEALTH, growth == GROWTH_HATCHLING ? 45.0D : growth == GROWTH_JUVENILE ? 120.0D : 220.0D);
-        setBaseIfPresent(Attributes.MOVEMENT_SPEED, growth == GROWTH_HATCHLING ? 0.34D : growth == GROWTH_JUVENILE ? 0.32D : 0.30D);
-        setBaseIfPresent(Attributes.ATTACK_DAMAGE, growth == GROWTH_HATCHLING ? 4.0D : growth == GROWTH_JUVENILE ? 9.0D : 16.0D);
-        setBaseIfPresent(Attributes.ARMOR, growth == GROWTH_HATCHLING ? 2.0D : growth == GROWTH_JUVENILE ? 5.0D : 8.0D);
+        DragonStage stage = getStage();
+        setBaseIfPresent(Attributes.MAX_HEALTH, stage.maxHealth);
+        setBaseIfPresent(Attributes.ATTACK_DAMAGE, stage.attackDamage);
+        setBaseIfPresent(Attributes.ARMOR, stage.armor);
+        setBaseIfPresent(Attributes.MOVEMENT_SPEED,
+                stage == DragonStage.INFANT ? 0.34D : stage == DragonStage.JUVENILE ? 0.33D : 0.31D);
+        // BIG dragons must not be glued to the floor: step height grows with the body.
+        setBaseIfPresent(Attributes.STEP_HEIGHT, 1.2D + getDragonScale() * 1.6D);
+        setBaseIfPresent(Attributes.KNOCKBACK_RESISTANCE, Math.min(1.0D, 0.55D + getDragonScale() * 0.4D));
         if (this.getHealth() > this.getMaxHealth()) {
             this.setHealth(this.getMaxHealth());
         }
@@ -473,9 +545,99 @@ public class VoidDragonEntity extends TamableAnimal {
     private void applyArmorBonus() {
         AttributeInstance armor = this.getAttribute(Attributes.ARMOR);
         if (armor != null) {
-            double base = getGrowth() == GROWTH_HATCHLING ? 2.0D : getGrowth() == GROWTH_JUVENILE ? 5.0D : 8.0D;
-            armor.setBaseValue(base + (isArmored() ? 10.0D : 0.0D));
+            armor.setBaseValue(getStage().armor + (isArmored() ? 10.0D : 0.0D));
         }
+    }
+
+    // ---------------------------------------------------------------- size & hitbox
+
+    /**
+     * The model is authored with the feet exactly on y=0 and it is 3.05 blocks
+     * tall / 3.88 blocks wide between the shoulders, so a hitbox derived from the
+     * same numbers can never leave the body sunk into the ground or let the wings
+     * poke through walls.
+     */
+    public static final float MODEL_HEIGHT = 3.05F;
+    public static final float MODEL_WIDTH = 3.10F;
+    /** The authored model is a bit longer than it is wide (snout and tail). */
+    public static final float MODEL_LENGTH = 5.20F;
+
+    @Override
+    public EntityDimensions getDimensions(Pose pose) {
+        float scale = getDragonScale();
+        // A resting dragon folds its wings, so the box only needs the body width.
+        float width = MODEL_WIDTH * scale;
+        float height = MODEL_HEIGHT * scale;
+        return EntityDimensions.scalable(width, height).withEyeHeight(height * 0.82F);
+    }
+
+    /** Height of the saddle, in blocks, above the dragon's feet. */
+    public float getSeatHeight() {
+        return MODEL_HEIGHT * 0.62F * getDragonScale();
+    }
+
+    /** How far the rider sits behind the shoulder pivot, in blocks. */
+    public float getSeatBack() {
+        return 0.10F * getDragonScale();
+    }
+
+    @Override
+    public Vec3 getPassengerRidingPosition(Entity passenger) {
+        return this.position().add(0.0D, getSeatHeight(), 0.0D);
+    }
+
+    @Override
+    public double getPassengersRidingOffset() {
+        return getSeatHeight();
+    }
+
+    @Override
+    public void positionRider(Entity passenger, MoveFunction moveFunction) {
+        if (!this.hasPassenger(passenger)) {
+            return;
+        }
+        // Sit on the saddle, and lean with the dragon when it banks in flight.
+        double y = getSeatHeight();
+        Vec3 forward = this.calculateViewVector(0.0F, this.getYRot()).scale(-getSeatBack());
+        float pitch = this.getXRot();
+        double lean = this.isFlying() ? Math.sin(Math.toRadians(pitch)) * 0.35D : 0.0D;
+        moveFunction.accept(passenger, this.getX() + forward.x, this.getY() + y + lean, this.getZ() + forward.z);
+    }
+
+    @Override
+    protected void addPassenger(Entity passenger) {
+        super.addPassenger(passenger);
+        if (!this.level().isClientSide) {
+            // Boarding cancels any sitting order so a saddled dragon can always be
+            // mounted. This was the deadlock that made riding impossible before.
+            this.setOrderedToSit(false);
+            this.setInSittingPose(false);
+            this.jumping = false;
+            this.getNavigation().stop();
+        }
+    }
+
+    @Override
+    public InteractionResult interactAt(Player player, Vec3 hitVec, InteractionHand hand) {
+        // Clicking anywhere on a saddled, grown dragon mounts it. Feet, tail and
+        // wings all count, which matters a lot on a phone-sized screen.
+        if (!this.level().isClientSide && this.canBeMountedBy(player) && this.getPassengers().isEmpty()) {
+            this.setOrderedToSit(false);
+            this.setInSittingPose(false);
+            player.setYRot(this.getYRot());
+            player.setXRot(0.0F);
+            if (player.startRiding(this)) {
+                this.playSound(SoundEvents.ENDER_DRAGON_FLAP, 1.0F, 1.1F);
+                return InteractionResult.SUCCESS;
+            }
+        }
+        return super.interactAt(player, hitVec, hand);
+    }
+
+    /** True when this player is allowed to climb on right now. */
+    public boolean canBeMountedBy(Player player) {
+        return this.isTame() && this.isOwnedBy(player) && this.isSaddled()
+                && this.getStage().canBeSaddled() && !this.isBaby() && this.isAlive();
     }
 
     // ---------------------------------------------------------------- interaction
@@ -552,7 +714,7 @@ public class VoidDragonEntity extends TamableAnimal {
 
         // ---- Equipment
         if (stack.is(ModItems.VOID_SADDLE.get()) && !this.isSaddled()) {
-            if (!this.isAdultDragon()) {
+            if (!this.getStage().canBeSaddled()) {
                 player.displayClientMessage(Component.translatable("message.voiddragon.too_young")
                         .withStyle(ChatFormatting.GRAY), true);
                 return InteractionResult.sidedSuccess(false);
@@ -590,6 +752,17 @@ public class VoidDragonEntity extends TamableAnimal {
             return InteractionResult.sidedSuccess(false);
         }
 
+        // ---- Sneaking + empty hand on a saddled dragon still toggles sitting, so a
+        // parked dragon can be tucked away instead of blocking the doorway.
+        if (stack.isEmpty() && this.isSaddled() && player.isShiftKeyDown() && !this.isVehicle()) {
+            boolean sit = !this.isInSittingPose();
+            this.setOrderedToSit(sit);
+            this.jumping = false;
+            this.navigation.stop();
+            this.setTarget(null);
+            return InteractionResult.sidedSuccess(false);
+        }
+
         // ---- Empty hand: toggle sit / stand
         if (stack.isEmpty() && !this.isSaddled()) {
             boolean sit = !this.isInSittingPose();
@@ -601,17 +774,20 @@ public class VoidDragonEntity extends TamableAnimal {
             return InteractionResult.sidedSuccess(false);
         }
 
-        // ---- Mount
-        if (this.isSaddled() && this.isAdultDragon() && !this.isVehicle() && !this.isInSittingPose()) {
+        // ---- Mount (works even when the dragon was ordered to sit: boarding clears it)
+        if (this.canBeMountedBy(player) && !this.isVehicle()) {
             this.setOrderedToSit(false);
+            this.setInSittingPose(false);
             player.setYRot(this.getYRot());
-            player.setXRot(this.getXRot());
-            player.startRiding(this);
-            this.addBond(1);
-            return InteractionResult.sidedSuccess(false);
+            player.setXRot(0.0F);
+            if (player.startRiding(this)) {
+                this.addBond(1);
+                this.playSound(SoundEvents.ENDER_DRAGON_FLAP, 1.0F, 1.1F);
+                return InteractionResult.sidedSuccess(false);
+            }
         }
 
-        if (this.isSaddled() && !this.isAdultDragon()) {
+        if (this.isSaddled() && !this.getStage().canBeSaddled()) {
             player.displayClientMessage(Component.translatable("message.voiddragon.too_young")
                     .withStyle(ChatFormatting.GRAY), true);
             return InteractionResult.sidedSuccess(false);
@@ -631,11 +807,11 @@ public class VoidDragonEntity extends TamableAnimal {
                 80, 1.6D, 1.2D, 1.6D, 0.1D);
         sl.sendParticles(ParticleTypes.REVERSE_PORTAL, getX(), getY() + this.getBbHeight() * 0.5D, getZ(),
                 60, 1.2D, 1.0D, 1.2D, 0.4D);
-        if (getGrowth() >= GROWTH_ADULT && player instanceof net.minecraft.server.level.ServerPlayer sp) {
+        if (getStage().abilityTier >= 2 && player instanceof net.minecraft.server.level.ServerPlayer sp) {
             ModTriggers.DRAGON_GROWN.get().trigger(sp);
         }
         player.displayClientMessage(Component.translatable("message.voiddragon.grew",
-                Component.translatable(getGrowth() == GROWTH_JUVENILE ? "voiddragon.stage.juvenile" : "voiddragon.stage.adult"))
+                Component.translatable(getStage().translationKey()))
                 .withStyle(ChatFormatting.LIGHT_PURPLE), false);
     }
 
@@ -647,6 +823,17 @@ public class VoidDragonEntity extends TamableAnimal {
     @Override
     public boolean canMate(Animal other) {
         return false;
+    }
+
+    /** Dragon "babies" are the infant stage, described by {@link DragonStage}. */
+    @Override
+    public boolean isBaby() {
+        return this.getStage() == DragonStage.INFANT;
+    }
+
+    @Override
+    public void setBaby(boolean baby) {
+        // growth is earned, never toggled
     }
 
     @Override
@@ -772,15 +959,91 @@ public class VoidDragonEntity extends TamableAnimal {
         if (this.getControllingPassenger() != rider) {
             return;
         }
+        int tier = this.getStage().abilityTier;
         switch (ability) {
-            case 0 -> requestBreath();
-            case 1 -> startRush(rider);
-            case 2 -> toggleFlight(rider);
-            case 3 -> roar(rider);
-            case 4 -> voidStep(rider);
+            case ABILITY_BREATH -> requestBreath();
+            case ABILITY_RUSH -> requireTier(rider, tier, 1, () -> startRush(rider));
+            case ABILITY_FLIGHT -> requireTier(rider, tier, 2, () -> toggleFlight(rider));
+            case ABILITY_ROAR -> requireTier(rider, tier, 3, () -> roar(rider));
+            case ABILITY_PORTAL -> requireTier(rider, tier, 4, () -> voidStep(rider));
+            case ABILITY_GODSTORM -> requireTier(rider, tier, 4, () -> voidStorm(rider));
+            case ABILITY_SIZE_UP -> nudgeSize(0.05F);
+            case ABILITY_SIZE_DOWN -> nudgeSize(-0.05F);
+            case ABILITY_SIZE_AUTO -> resetSize();
             default -> {
             }
         }
+    }
+
+    // Ability ids shared with the client HUD / payload.
+    public static final int ABILITY_BREATH = 0;
+    public static final int ABILITY_RUSH = 1;
+    public static final int ABILITY_FLIGHT = 2;
+    public static final int ABILITY_ROAR = 3;
+    public static final int ABILITY_PORTAL = 4;
+    public static final int ABILITY_GODSTORM = 5;
+    /** Requests to change the manual size come in on the same channel. */
+    public static final int ABILITY_SIZE_UP = 8;
+    public static final int ABILITY_SIZE_DOWN = 9;
+    public static final int ABILITY_SIZE_AUTO = 10;
+
+    private void requireTier(ServerPlayer rider, int tier, int needed, Runnable action) {
+        if (tier < needed) {
+            DragonStage unlock = DragonStage.byIndex(needed);
+            rider.displayClientMessage(Component.translatable("message.voiddragon.needs_stage",
+                    Component.translatable(unlock.translationKey())).withStyle(ChatFormatting.GRAY), true);
+            return;
+        }
+        action.run();
+    }
+
+    /** Void Storm: the Dragon God's signature move — a collapsing singularity. */
+    private void voidStorm(ServerPlayer rider) {
+        if (this.stormCooldown > 0 || !(this.level() instanceof ServerLevel sl)) {
+            return;
+        }
+        this.stormCooldown = scaleCooldown(1200);
+        Vec3 c = this.position().add(0.0D, this.getBbHeight() * 0.55D, 0.0D);
+        double radius = 10.0D + getDragonScale() * 10.0D;
+        sl.playSound(null, getX(), getY(), getZ(), SoundEvents.WARDEN_SONIC_CHARGE, SoundSource.HOSTILE, 6.0F, 0.4F);
+        sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 8.0F, 0.3F);
+        for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(radius), this::canHit)) {
+            Vec3 pull = c.subtract(e.position());
+            double dist = Math.max(0.6D, pull.length());
+            e.setDeltaMovement(e.getDeltaMovement().add(pull.normalize().scale(Math.min(2.4D, 12.0D / dist))));
+            e.hurtMarked = true;
+            e.invulnerableTime = 0;
+            e.hurt(sl.damageSources().indirectMagic(this, rider), 26.0F);
+            e.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 300, 0));
+            e.addEffect(new MobEffectInstance(MobEffects.WITHER, 200, 2));
+            e.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 160, 3));
+        }
+        for (int ring = 0; ring < 5; ring++) {
+            double r = radius * (0.25D + ring * 0.2D);
+            for (int i = 0; i < 64; i++) {
+                double a = i * (Math.PI * 2.0D / 64.0D) + ring * 0.2D;
+                sl.sendParticles(ParticleTypes.PORTAL, c.x + Math.cos(a) * r, getY() + 0.3D + ring * 0.9D,
+                        c.z + Math.sin(a) * r, 0, -Math.cos(a), 0.05D, -Math.sin(a), 2.2D);
+            }
+        }
+        sl.sendParticles(SHADOW_DUST, c.x, c.y, c.z, 160, radius * 0.5D, 2.0D, radius * 0.5D, 0.0D);
+        sl.sendParticles(ParticleTypes.SONIC_BOOM, c.x, c.y, c.z, 3, 0, 0, 0, 0);
+        sl.sendParticles(ParticleTypes.EXPLOSION_EMITTER, c.x, c.y, c.z, 1, 0, 0, 0, 0);
+    }
+
+    /** Player-facing size control from the dragon UI. */
+    public void nudgeSize(float delta) {
+        float current = getDragonScale();
+        float next = Mth.clamp(current + delta, MIN_SIZE_MULT, MAX_SIZE_MULT);
+        setSizeOverride(next);
+        if (this.level() instanceof ServerLevel sl) {
+            sl.sendParticles(ParticleTypes.REVERSE_PORTAL, getX(), getY() + this.getBbHeight() * 0.5D, getZ(),
+                    20, 0.6D, 0.6D, 0.6D, 0.2D);
+        }
+    }
+
+    public void resetSize() {
+        setSizeOverride(0.0F);
     }
 
     public void requestBreath() {
@@ -797,6 +1060,11 @@ public class VoidDragonEntity extends TamableAnimal {
         if (!VoidDragonConfig.INSTANCE.allowFlight.get()) {
             rider.displayClientMessage(Component.translatable("message.voiddragon.flight_disabled")
                     .withStyle(ChatFormatting.GRAY), true);
+            return;
+        }
+        if (!this.getStage().canFly()) {
+            rider.displayClientMessage(Component.translatable("message.voiddragon.needs_stage",
+                    Component.translatable(DragonStage.ADULT.translationKey())).withStyle(ChatFormatting.GRAY), true);
             return;
         }
         if (!hasBond(BOND_FLIGHT)) {
@@ -1139,6 +1407,7 @@ public class VoidDragonEntity extends TamableAnimal {
         if (this.dashCooldown > 0) this.dashCooldown--;
         if (this.roarCooldown > 0) this.roarCooldown--;
         if (this.portalCooldown > 0) this.portalCooldown--;
+        if (this.stormCooldown > 0) this.stormCooldown--;
         if (this.followTeleportCooldown > 0) this.followTeleportCooldown--;
 
         LivingEntity rider = this.getControllingPassenger();
@@ -1207,7 +1476,7 @@ public class VoidDragonEntity extends TamableAnimal {
             } else if (!this.isInSittingPose()) {
                 addBond(1);
             }
-            if (!isAdultDragon() && VoidDragonConfig.INSTANCE.naturalGrowthSeconds.get() > 0) {
+            if (getStage() != DragonStage.GOD && VoidDragonConfig.INSTANCE.naturalGrowthSeconds.get() > 0) {
                 addGrowth(1);
             }
         }
@@ -1338,7 +1607,7 @@ public class VoidDragonEntity extends TamableAnimal {
         boolean hit = super.doHurtTarget(target);
         if (hit) {
             this.addBond(2);
-            if (!isAdultDragon()) {
+            if (getStage() != DragonStage.GOD) {
                 addGrowth(1);
             }
             if (target instanceof LivingEntity living) {
@@ -1346,6 +1615,35 @@ public class VoidDragonEntity extends TamableAnimal {
             }
         }
         return hit;
+    }
+
+    /**
+     * Achievements that actually make the dragon bigger: every kill feeds the
+     * growth counter, and killing another dragon (or a boss) feeds it a lot.
+     */
+    @Override
+    public void awardKillScore(Entity killed, int scoreValue, DamageSource source) {
+        super.awardKillScore(killed, scoreValue, source);
+        if (this.level().isClientSide) {
+            return;
+        }
+        this.entityData.set(DATA_KILLS, getKills() + 1);
+        int growth = 2;
+        if (killed instanceof VoidDragonEntity) {
+            this.entityData.set(DATA_DRAGON_KILLS, getDragonKills() + 1);
+            growth = 25;
+        } else if (killed.getType() == EntityType.WITHER
+                || killed.getType() == EntityType.ENDER_DRAGON
+                || killed.getType() == EntityType.WARDEN
+                || killed.getType() == EntityType.ELDER_GUARDIAN) {
+            growth = 18;
+        } else if (killed instanceof net.minecraft.world.entity.Mob) {
+            growth = 4;
+        }
+        if (addGrowth(growth) && this.getOwner() instanceof ServerPlayer owner) {
+            owner.displayClientMessage(Component.translatable("message.voiddragon.grew",
+                    Component.translatable(getStage().translationKey())).withStyle(ChatFormatting.LIGHT_PURPLE), false);
+        }
     }
 
     @Override

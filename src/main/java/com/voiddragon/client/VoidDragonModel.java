@@ -3,6 +3,7 @@ package com.voiddragon.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.voiddragon.VoidDragonMod;
+import com.voiddragon.entity.DragonStage;
 import com.voiddragon.entity.VoidDragonEntity;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.geom.ModelLayerLocation;
@@ -12,12 +13,22 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * The Void Dragon model.
+ * The animated Void Dragon.
  *
- * <p>Geometry (69 cubes: neck chain, head, jaw, horns, tail, two-segment wings,
- * quadruped legs, saddle and armour shell) is generated into {@link DragonRig}
- * from <code>tools/dragon_spec.py</code>; this class only drives the animation.</p>
+ * <p>All 123 cubes of geometry are generated into {@link DragonRig} from
+ * <code>tools/dragon_spec.py</code>; this class only moves them. Every joint that
+ * matters for acting is cached with its rest pose so animations stay additive
+ * and the model never drifts out of its bind pose after a few hundred ticks.</p>
+ *
+ * <p>Animations: idle breathing with a lazy tail sway, a four-beat walk with
+ * counter-rotating shoulders and hips, tucked legs and beating wings in flight,
+ * a hunched sit, a full-body roar (neck rears, jaw opens, wings flare), a breath
+ * channel (jaw + throat), banking in turns and a per-stage "aura" pose where
+ * older dragons hold their head higher.</p>
  */
 public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
     public static final ModelLayerLocation LAYER =
@@ -26,74 +37,123 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
 
     private final ModelPart root;
     private final ModelPart body;
-    private final ModelPart[] neck = new ModelPart[4];
-    private final ModelPart head, jaw;
-    private final ModelPart[] tail = new ModelPart[6];
-    private final ModelPart tailFinTop, tailFinBot;
-    private final ModelPart wingL, wingLFore, wingLFinger, wingR, wingRFore, wingRFinger;
-    private final ModelPart[] legs = new ModelPart[4];      // thigh
-    private final ModelPart[] shins = new ModelPart[4];
-    private final ModelPart[] feet = new ModelPart[4];
-    private final ModelPart saddle, armor, armorChest;
+    private final ModelPart jaw;
+    private final ModelPart head;
+    private final float headRestX;
+    private final float jawRestX;
 
-    /** Resting offsets, captured once so the animation can be additive. */
-    private final float[] legRestX = new float[4];
+    private final ModelPart[] neck = new ModelPart[5];
+    private final float[] neckRestX = new float[5];
+    private final ModelPart[] tail = new ModelPart[7];
+    private final float[] tailRestX = new float[7];
+    private final float[] tailRestY = new float[7];
+    private final ModelPart spadeTop, spadeBot;
+
+    private final ModelPart wingL, wingR, wingLFore, wingRFore;
+    private final ModelPart[] wingLFingers = new ModelPart[3];
+    private final ModelPart[] wingRFingers = new ModelPart[3];
+    private final ModelPart[] wingLMembrane = new ModelPart[4];
+    private final ModelPart[] wingRMembrane = new ModelPart[4];
+    private final float wingRestZRot, wingRestYRot, foreRestZRot;
+
+    private final List<ModelPart> legs = new ArrayList<>();   // thigh, shin, foot triples
+    private final float[] thighRestX = new float[4];
     private final float[] shinRestX = new float[4];
     private final float[] footRestX = new float[4];
-    private final float[] neckRestX = new float[4];
-    private final float headRestX;
-    private final float jarRestX;
+
+    private final ModelPart[] crests = new ModelPart[2];
+    private final ModelPart[] horns = new ModelPart[6];
+    private final float[] hornRestX = new float[6];
 
     public VoidDragonModel(ModelPart root) {
         super(RenderType::entityCutoutNoCull);
         this.root = root;
         this.body = root.getChild("body");
 
-        this.neck[0] = body.getChild("neck1");
-        this.neck[1] = neck[0].getChild("neck2");
-        this.neck[2] = neck[1].getChild("neck3");
-        this.neck[3] = neck[2].getChild("neck4");
-        this.head = neck[3].getChild("head");
-        this.jaw = head.getChild("jaw");
-
-        this.tail[0] = body.getChild("tail1");
-        for (int i = 1; i < 6; i++) {
-            this.tail[i] = tail[i - 1].getChild("tail" + (i + 1));
+        ModelPart previous = body;
+        for (int i = 0; i < neck.length; i++) {
+            this.neck[i] = previous.getChild("neck" + (i + 1));
+            this.neckRestX[i] = neck[i].xRot;
+            previous = neck[i];
         }
-        this.tailFinTop = tail[5].getChild("tail_fin_top");
-        this.tailFinBot = tail[5].getChild("tail_fin_bot");
+        this.head = neck[neck.length - 1].getChild("head");
+        this.jaw = head.getChild("jaw");
+        this.headRestX = head.xRot;
+        this.jawRestX = jaw.xRot;
+
+        previous = body;
+        for (int i = 0; i < tail.length; i++) {
+            this.tail[i] = previous.getChild("tail" + (i + 1));
+            this.tailRestX[i] = tail[i].xRot;
+            this.tailRestY[i] = tail[i].yRot;
+            previous = tail[i];
+        }
+        this.spadeTop = tail[tail.length - 1].getChild("spade_top");
+        this.spadeBot = tail[tail.length - 1].getChild("spade_bot");
 
         this.wingL = body.getChild("wing_l");
-        this.wingLFore = wingL.getChild("wing_l_fore");
-        this.wingLFinger = wingL.getChild("wing_l_finger");
         this.wingR = body.getChild("wing_r");
+        this.wingLFore = wingL.getChild("wing_l_fore");
         this.wingRFore = wingR.getChild("wing_r_fore");
-        this.wingRFinger = wingR.getChild("wing_r_finger");
-
-        String[] thigh = {"leg_fl_thigh", "leg_fr_thigh", "leg_bl_thigh", "leg_br_thigh"};
-        String[] shin = {"leg_fl_shin", "leg_fr_shin", "leg_bl_shin", "leg_br_shin"};
-        String[] foot = {"leg_fl_foot", "leg_fr_foot", "leg_bl_foot", "leg_br_foot"};
-        for (int i = 0; i < 4; i++) {
-            this.legs[i] = body.getChild(thigh[i]);
-            this.shins[i] = legs[i].getChild(shin[i]);
-            this.feet[i] = shins[i].getChild(foot[i]);
-            this.legRestX[i] = legs[i].xRot;
-            this.shinRestX[i] = shins[i].xRot;
-            this.footRestX[i] = feet[i].xRot;
+        this.wingRestZRot = wingL.zRot;
+        this.wingRestYRot = wingL.yRot;
+        this.foreRestZRot = wingLFore.zRot;
+        for (int i = 0; i < 3; i++) {
+            this.wingLFingers[i] = wingLFore.getChild("wing_l_f" + (i + 1));
+            this.wingRFingers[i] = wingRFore.getChild("wing_r_f" + (i + 1));
         }
         for (int i = 0; i < 4; i++) {
-            this.neckRestX[i] = neck[i].xRot;
+            this.wingLMembrane[i] = wingLFore.getChild("wing_l_m" + (i + 1));
+            this.wingRMembrane[i] = wingRFore.getChild("wing_r_m" + (i + 1));
         }
-        this.headRestX = head.xRot;
-        this.jarRestX = jaw.xRot;
 
-        this.saddle = body.getChild("saddle");
-        this.armor = body.getChild("armor");
-        this.armorChest = body.getChild("armor_chest");
+        String[] sides = {"fl", "fr", "bl", "br"};
+        for (int i = 0; i < 4; i++) {
+            ModelPart thigh = body.getChild("leg_" + sides[i] + "_thigh");
+            ModelPart shin = thigh.getChild("leg_" + sides[i] + "_shin");
+            ModelPart foot = shin.getChild("leg_" + sides[i] + "_foot");
+            legs.add(thigh);
+            legs.add(shin);
+            legs.add(foot);
+            this.thighRestX[i] = thigh.xRot;
+            this.shinRestX[i] = shin.xRot;
+            this.footRestX[i] = foot.xRot;
+        }
+
+        this.crests[0] = head.getChild("crest_l");
+        this.crests[1] = head.getChild("crest_r");
+        int h = 0;
+        for (String side : new String[]{"l", "r"}) {
+            ModelPart base = head.getChild("horn_" + side + "1");
+            horns[h] = base;
+            hornRestX[h] = base.xRot;
+            h++;
+            ModelPart second = base.getChild("horn_" + side + "2");
+            horns[h] = second;
+            hornRestX[h] = second.xRot;
+            h++;
+            ModelPart third = second.getChild("horn_" + side + "3");
+            horns[h] = third;
+            hornRestX[h] = third.xRot;
+            h++;
+        }
+        setGearVisible(false, false);
     }
 
     public static LayerDefinition createBodyLayer() {
         return LayerDefinition.create(DragonRig.createMesh(), TEXTURE_SIZE, TEXTURE_SIZE);
+    }
+
+    private void setGearVisible(boolean saddle, boolean armor) {
+        String[] gear = {"saddle", "saddle_pommel", "saddle_cantle", "saddle_strap_l", "saddle_strap_r"};
+        for (String name : gear) {
+            ModelPart part = body.getChild(name);
+            part.visible = saddle;
+        }
+        for (String name : new String[]{"armor_chest", "armor_torso", "armor_hips", "armor_collar"}) {
+            ModelPart part = body.getChild(name);
+            part.visible = armor;
+        }
     }
 
     @Override
@@ -103,76 +163,143 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         float fly = entity.getFlyProgress(partial);
         float mouth = entity.getMouthProgress(partial);
         boolean sit = entity.isInSittingPose() && fly < 0.05F;
-        float flapRate = 0.34F * entity.getFlapSpeed();
+        float flapRate = 0.30F * entity.getFlapSpeed();
         float flap = Mth.sin(age * flapRate);
-        float flapLag = Mth.sin(age * flapRate - 0.8F);
-        float breathe = Mth.sin(age * 0.075F);
+        float flapLag = Mth.sin(age * flapRate - 0.9F);
+        float breathe = Mth.sin(age * 0.055F);
 
-        this.saddle.visible = entity.isSaddled();
-        this.armor.visible = entity.isArmored();
-        this.armorChest.visible = entity.isArmored();
+        DragonStage stage = entity.getStage();
+        float stageLift = stage.ordinal() * 0.035F;   // older dragons hold their head higher
 
-        // ---- torso: breathing bob, sinking when sitting, lift while flying
-        body.y = 20.0F + breathe * 0.35F + (sit ? 4.5F : 0.0F) - fly * Math.abs(flap) * 1.4F;
-        body.xRot = fly * Mth.sin(age * flapRate - 0.4F) * 0.03F;
+        setGearVisible(entity.isSaddled(), entity.isArmored());
 
-        // ---- neck: follow the look direction, arch in flight
+        // ------------------------------------------------ torso: breathe, bob, bank
+        body.x = 0.0F;
+        body.y = breathe * 0.30F - fly * (0.6F + Math.abs(flap) * 0.9F) + (sit ? 2.6F : 0.0F);
+        body.z = 0.0F;
+        body.xRot = fly * (flapLag * 0.05F + 0.03F) + (sit ? 0.10F : 0.0F);
+        body.yRot = -limbSwing * 0.06F * limbSwingAmount * (1.0F - fly);
+        body.zRot = fly * Mth.sin(age * 0.04F) * 0.03F;
+
+        // ------------------------------------------------ neck: s-curve follows the look
         float yaw = netHeadYaw * Mth.DEG_TO_RAD;
         float pitch = headPitch * Mth.DEG_TO_RAD;
-        for (int i = 0; i < 4; i++) {
+        float rear = mouth * 0.22F;   // a roaring / breathing dragon rears its neck up
+        for (int i = 0; i < neck.length; i++) {
             ModelPart part = neck[i];
-            part.yRot = yaw * (0.16F + i * 0.06F) + Mth.sin(age * 0.03F + i * 0.4F) * 0.02F;
+            float weight = 0.10F + i * 0.055F;
+            part.yRot = yaw * weight + Mth.sin(age * 0.021F + i * 0.7F) * 0.014F;
             part.xRot = neckRestX[i]
-                    + pitch * (0.06F + i * 0.05F)
-                    + breathe * 0.02F * (i + 1)
-                    - fly * (0.05F + i * 0.02F);
+                    + pitch * weight
+                    - rear * (0.10F + i * 0.03F)
+                    - stageLift * (1.0F - i * 0.12F)
+                    - fly * 0.035F * (1.0F - i * 0.2F)
+                    + breathe * 0.008F * (i + 1);
+            part.zRot = Mth.sin(age * 0.017F + i) * 0.01F;
         }
-        head.yRot = yaw * 0.28F;
-        head.xRot = headRestX + pitch * 0.5F + Mth.sin(age * 0.05F) * 0.02F;
-        jaw.xRot = jarRestX + mouth * 0.55F + Mth.sin(age * 0.9F) * 0.03F * mouth + breathe * 0.015F;
+        head.yRot = yaw * 0.30F;
+        head.xRot = headRestX + pitch * 0.45F + Mth.sin(age * 0.031F) * 0.02F
+                + mouth * 0.10F - stageLift * 0.4F;
+        jaw.xRot = jawRestX + mouth * 0.62F + Mth.sin(age * 0.8F) * 0.03F * mouth;
 
-        // ---- tail: travelling sway, lashes harder in flight
-        float sway = age * 0.06F;
-        float swingAmount = 0.10F + fly * 0.10F;
-        for (int i = 0; i < 6; i++) {
+        // ------------------------------------------------ tail: travelling lash
+        float sway = age * 0.05F;
+        float swing = 0.09F + fly * 0.10F;
+        for (int i = 0; i < tail.length; i++) {
             ModelPart part = tail[i];
-            part.yRot = Mth.sin(sway - i * 0.62F) * swingAmount * (0.6F + i * 0.14F)
-                    + Mth.cos(limbSwing * 0.33F) * 0.05F * limbSwingAmount * (1.0F - fly);
-            part.xRot += 0.0F;
+            part.yRot = tailRestY[i] + Mth.sin(sway - i * 0.55F) * swing * (0.5F + i * 0.12F)
+                    + Mth.cos(limbSwing * 0.35F) * 0.04F * limbSwingAmount * (1.0F - fly);
+            part.xRot = tailRestX[i] + (sit ? 0.06F : 0.0F) + fly * flap * 0.02F;
         }
-        tail[0].xRot = -0.04F + (sit ? 0.30F : 0.0F) + fly * flapLag * 0.05F;
-        tailFinTop.xRot = -0.22F + fly * flap * 0.12F;
-        tailFinBot.xRot = 0.15F - fly * flap * 0.08F;
+        spadeTop.xRot = -0.34F + fly * flap * 0.16F + mouth * 0.10F;
+        spadeBot.xRot = 0.05F - fly * flap * 0.10F;
 
-        // ---- wings: folded along the back on the ground, spread and beating in flight
-        float armYaw = Mth.lerp(fly, -1.95F, -0.10F);
-        float armRoll = Mth.lerp(fly, 0.12F + breathe * 0.02F, -0.22F - flap * 0.72F);
-        float foreYaw = Mth.lerp(fly, -2.85F, 0.26F);
-        float fingerYaw = Mth.lerp(fly, -0.35F, 0.30F + flapLag * 0.18F);
-        float foreRoll = Mth.lerp(fly, 0.0F, -flapLag * 0.35F);
+        // ------------------------------------------------ wings
+        if (fly > 0.02F) {
+            animateFlightWings(fly, flap, flapLag);
+        } else {
+            animateFoldedWings(fly, breathe, mouth, limbSwing, limbSwingAmount);
+        }
+        for (ModelPart crest : crests) {
+            crest.xRot = 1.00F + Mth.sin(age * 0.06F) * 0.05F + mouth * 0.25F;
+        }
+        for (int i = 0; i < horns.length; i++) {
+            horns[i].xRot = hornRestX[i] + Mth.sin(age * 0.03F + i) * 0.012F;
+        }
 
-        wingL.yRot = armYaw;
-        wingL.zRot = armRoll;
-        wingLFore.yRot = foreYaw;
-        wingLFore.zRot = foreRoll;
-        wingLFinger.yRot = fingerYaw;
-
-        wingR.yRot = -armYaw;
-        wingR.zRot = -armRoll;
-        wingRFore.yRot = -foreYaw;
-        wingRFore.zRot = -foreRoll;
-        wingRFinger.yRot = -fingerYaw;
-
-        // ---- legs: walk cycle on the ground, tucked while flying, sprawled when sitting
-        float walkA = Mth.cos(limbSwing * 0.9F) * 0.55F * limbSwingAmount;
-        float walkB = Mth.cos(limbSwing * 0.9F + Mth.PI) * 0.55F * limbSwingAmount;
-        float[] walk = {walkA, walkB, walkB, walkA};
+        // ------------------------------------------------ legs
+        float stride = Mth.cos(limbSwing * 0.85F);
+        float counter = Mth.cos(limbSwing * 0.85F + Mth.PI);
+        float[] walk = {stride, counter, counter, stride};
         for (int i = 0; i < 4; i++) {
-            float flyBend = i < 2 ? -0.32F : 0.30F;
-            float rest = legs[i].xRot;
-            legs[i].xRot = rest + Mth.lerp(fly, walk[i], flyBend) + (sit ? (i < 2 ? -0.15F : -0.30F) : 0.0F);
-            shins[i].xRot = shinRestX[i] + Mth.lerp(fly, walk[i] * -0.35F, i < 2 ? 0.15F : 0.25F);
-            feet[i].xRot = footRestX[i] + Mth.lerp(fly, -walk[i] * 0.25F, 0.35F);
+            ModelPart thigh = legs.get(i * 3);
+            ModelPart shin = legs.get(i * 3 + 1);
+            ModelPart foot = legs.get(i * 3 + 2);
+            boolean front = i < 2;
+            float flyBend = front ? -0.40F : 0.34F;
+            float sitBend = front ? -0.18F : -0.42F;
+            thigh.xRot = thighRestX[i]
+                    + Mth.lerp(fly, walk[i] * 0.55F * limbSwingAmount, flyBend)
+                    + (sit ? sitBend : 0.0F);
+            shin.xRot = shinRestX[i]
+                    + Mth.lerp(fly, -walk[i] * 0.25F * limbSwingAmount, front ? 0.22F : 0.30F)
+                    + (sit ? (front ? 0.30F : 0.55F) : 0.0F);
+            foot.xRot = footRestX[i]
+                    + Mth.lerp(fly, -walk[i] * 0.18F * limbSwingAmount, 0.32F)
+                    + (sit ? -0.20F : 0.0F);
+        }
+    }
+
+    private void animateFoldedWings(float fly, float breathe, float mouth, float limbSwing, float limbSwingAmount) {
+        // Wings fold up over the back like a bat's umbrella, tucked against the spine.
+        float unfurl = mouth * 0.30F;                       // a roar flares them a little
+        float idle = Mth.sin(limbSwing * 0.33F) * 0.03F * limbSwingAmount;
+        wingL.yRot = wingRestYRot - unfurl * 0.8F + idle;
+        wingL.zRot = wingRestZRot - unfurl * 0.5F + breathe * 0.02F;
+        wingL.xRot = 0.0F;
+        wingLFore.yRot = 0.0F;
+        wingLFore.zRot = foreRestZRot + unfurl * 0.6F;
+
+        wingR.yRot = -wingL.yRot;
+        wingR.zRot = -wingL.zRot;
+        wingR.xRot = 0.0F;
+        wingRFore.yRot = 0.0F;
+        wingRFore.zRot = -wingLFore.zRot;
+
+        for (int i = 0; i < 4; i++) {
+            wingLMembrane[i].zRot = 0.0F;
+            wingRMembrane[i].zRot = 0.0F;
+        }
+    }
+
+    private void animateFlightWings(float fly, float flap, float flapLag) {
+        // Down-stroke sweeps the arm out and the leading edge forward; the fingers
+        // trail a few degrees behind so the membrane looks like cloth, not plastic.
+        float sweep = 0.34F * flap;
+        float armRoll = -0.10F + sweep;
+        float foreRoll = 0.06F + flap * 0.12F;
+        wingL.xRot = -0.05F + flap * 0.10F;
+        wingL.zRot = Mth.lerp(fly, wingRestZRot, armRoll);
+        wingL.yRot = Mth.lerp(fly, wingRestYRot, 0.10F);
+        wingLFore.zRot = Mth.lerp(fly, foreRestZRot, foreRoll);
+        wingLFore.yRot = Mth.lerp(fly, 0.0F, 0.02F);
+        for (int i = 0; i < 3; i++) {
+            wingLFingers[i].zRot = -0.05F + flapLag * 0.10F * (1.0F - i * 0.2F);
+        }
+        for (int i = 0; i < 4; i++) {
+            wingLMembrane[i].zRot = flapLag * 0.06F * (i + 1);
+        }
+
+        wingR.xRot = wingL.xRot;
+        wingR.zRot = -wingL.zRot;
+        wingR.yRot = -wingL.yRot;
+        wingRFore.zRot = -wingLFore.zRot;
+        wingRFore.yRot = -wingLFore.yRot;
+        for (int i = 0; i < 3; i++) {
+            wingRFingers[i].zRot = -wingLFingers[i].zRot;
+        }
+        for (int i = 0; i < 4; i++) {
+            wingRMembrane[i].zRot = -wingLMembrane[i].zRot;
         }
     }
 

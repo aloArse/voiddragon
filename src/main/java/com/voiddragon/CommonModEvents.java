@@ -81,7 +81,7 @@ public class CommonModEvents {
                 return;
             }
             hatchling.moveTo(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, player.getYRot(), 0.0F);
-            hatchling.setGrowth(VoidDragonEntity.GROWTH_HATCHLING);
+            hatchling.addGrowth(0);
             hatchling.setTame(true, true);
             hatchling.setOwnerUUID(player.getUUID());
             hatchling.setBond(15);

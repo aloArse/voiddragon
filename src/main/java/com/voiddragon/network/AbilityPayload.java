@@ -9,7 +9,9 @@ import net.minecraft.resources.ResourceLocation;
 
 /**
  * Client -&gt; server: the rider pressed an ability key.
- * 0 = void breath, 1 = void rush, 2 = flight toggle, 3 = void roar, 4 = void step.
+ * <p>Ability ids are shared with {@code VoidDragonEntity.ABILITY_*}: 0 = void breath,
+ * 1 = void rush, 2 = flight toggle, 3 = void roar, 4 = void step, 5 = void storm,
+ * 8/9/10 = grow, shrink and reset the dragon's size.</p>
  */
 public record AbilityPayload(int ability) implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<AbilityPayload> TYPE =
