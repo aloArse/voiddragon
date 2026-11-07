@@ -68,6 +68,71 @@ tasks.withType(ProcessResources).configureEach {
     }
 }
 
+// ---------------------------------------------------------------------------
+// CI helper: compile the sources in-process with javax.tools so that every
+// compiler diagnostic can be re-emitted as a GitHub Actions annotation
+// (annotations are readable through the API even when logs are not) and the
+// build stops with a readable list of errors.
+// ---------------------------------------------------------------------------
+if (System.getenv('GITHUB_ACTIONS') == 'true') {
+    def probeSources = fileTree('src/main/java') { include '**/*.java' }
+    def probeOut = layout.buildDirectory.dir('probe-classes')
+    def probeClasspath = configurations.compileClasspath
+
+    def probeCompile = tasks.register('probeCompile') {
+        group = 'verification'
+        description = 'Reports every Java compiler diagnostic as a CI annotation.'
+        doLast {
+            def outDir = probeOut.get().asFile
+            outDir.deleteDir()
+            outDir.mkdirs()
+            def compiler = javax.tools.ToolProvider.systemJavaCompiler
+            if (compiler == null) {
+                throw new GradleException('no system java compiler available')
+            }
+            def diagnostics = new javax.tools.DiagnosticCollector()
+            def fileManager = compiler.getStandardFileManager(diagnostics, null, java.nio.charset.StandardCharsets.UTF_8)
+            def units = fileManager.getJavaFileObjectsFromFiles(probeSources.files.toList())
+            def options = [
+                    '-classpath', probeClasspath.asPath,
+                    '-d', outDir.absolutePath,
+                    '-proc:none',
+                    '-encoding', 'UTF-8',
+                    '-Xlint:-options'
+            ]
+            def task = compiler.getTask(null, fileManager, diagnostics, options, null, units)
+            task.call()
+            fileManager.close()
+
+            def errors = diagnostics.diagnostics.findAll { it.kind == javax.tools.Diagnostic.Kind.ERROR }
+            def warnings = diagnostics.diagnostics.findAll { it.kind == javax.tools.Diagnostic.Kind.WARNING }
+            println "::notice::probeCompile: ${errors.size()} error(s), ${warnings.size()} warning(s)"
+
+            def clean = { String s -> (s ?: '').replace('%', '%25').replace('\r', '%0D').replace('\n', ' ') }
+            def emit = { diag ->
+                def line = diag.lineNumber
+                def src = diag.source == null ? 'unknown' : new File(diag.source.toUri()).path
+                def rel = src.startsWith(projectDir.path + File.separator) ?
+                        src.substring(projectDir.path.length() + 1) : src
+                println "::error file=${rel},line=${line ?: 1},col=${diag.columnNumber ?: 1}::${clean(diag.getMessage(null))}"
+            }
+            errors.take(20).each(emit)
+            warnings.take(5).each { diag ->
+                def line = diag.lineNumber
+                def src = diag.source == null ? 'unknown' : new File(diag.source.toUri()).path
+                def rel = src.startsWith(projectDir.path + File.separator) ?
+                        src.substring(projectDir.path.length() + 1) : src
+                println "::warning file=${rel},line=${line ?: 1}::${clean(diag.getMessage(null))}"
+            }
+            if (!errors.isEmpty()) {
+                throw new GradleException("${errors.size()} Java compile error(s) - see the annotations on this run.")
+            }
+        }
+    }
+
+    tasks.named('compileJava').configure { dependsOn(probeCompile) }
+}
+
 jar {
     manifest {
         attributes([
