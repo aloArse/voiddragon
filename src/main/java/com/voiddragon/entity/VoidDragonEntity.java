@@ -10,7 +10,6 @@ import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -1218,39 +1217,6 @@ public class VoidDragonEntity extends TamableAnimal {
                 this.playSound(SoundEvents.ENDER_DRAGON_AMBIENT, 0.6F, 0.7F + this.random.nextFloat() * 0.3F);
             }
         }
-    }
-
-    private MutableComponent buildStatus() {
-        int filled = Mth.clamp(Math.round(this.energy / 10.0F), 0, 10);
-        MutableComponent bar = Component.literal("Void ").withStyle(ChatFormatting.DARK_PURPLE)
-                .append(Component.literal("|".repeat(filled))
-                        .withStyle(this.breathLocked ? ChatFormatting.RED : ChatFormatting.LIGHT_PURPLE))
-                .append(Component.literal("|".repeat(10 - filled)).withStyle(ChatFormatting.DARK_GRAY));
-        bar.append(Component.literal("  ").withStyle(ChatFormatting.GRAY));
-        bar.append(Component.translatable("voiddragon.hud.bond").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal(" " + getBond() + "%").withStyle(ChatFormatting.LIGHT_PURPLE));
-        if (hasBond(BOND_RUSH)) {
-            bar.append(Component.literal("  ").withStyle(ChatFormatting.GRAY))
-                    .append(Component.translatable("voiddragon.ability.rush").withStyle(ChatFormatting.GRAY))
-                    .append(Component.literal(" ").withStyle(ChatFormatting.GRAY))
-                    .append(Component.literal(this.dashCooldown == 0 ? "\u2714" : (this.dashCooldown / 20 + 1) + "s")
-                            .withStyle(this.dashCooldown == 0 ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY));
-        }
-        if (hasBond(BOND_ROAR)) {
-            bar.append(Component.literal("  ").withStyle(ChatFormatting.GRAY))
-                    .append(Component.translatable("voiddragon.ability.roar").withStyle(ChatFormatting.GRAY))
-                    .append(Component.literal(" ").withStyle(ChatFormatting.GRAY))
-                    .append(Component.literal(this.roarCooldown == 0 ? "\u2714" : (this.roarCooldown / 20 + 1) + "s")
-                            .withStyle(this.roarCooldown == 0 ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY));
-        }
-        if (hasBond(BOND_PORTAL)) {
-            bar.append(Component.literal("  ").withStyle(ChatFormatting.GRAY))
-                    .append(Component.translatable("voiddragon.ability.portal").withStyle(ChatFormatting.GRAY))
-                    .append(Component.literal(" ").withStyle(ChatFormatting.GRAY))
-                    .append(Component.literal(this.portalCooldown == 0 ? "\u2714" : (this.portalCooldown / 20 + 1) + "s")
-                            .withStyle(this.portalCooldown == 0 ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY));
-        }
-        return bar;
     }
 
     private void clientTick() {

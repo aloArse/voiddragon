@@ -11,7 +11,7 @@ public class ModItems {
 
     /** Taming food, growth food and healing item. */
     public static final DeferredItem<Item> VOID_SHARD = ITEMS.register("void_shard",
-            () -> new LoreItem(new Item.Properties().rarity(Rarity.EPIC), "item.voiddragon.void_shard.lore"));
+            () -> new VoidShardItem(new Item.Properties().rarity(Rarity.EPIC)));
 
     /** Required before an adult dragon will let anybody ride it. */
     public static final DeferredItem<Item> VOID_SADDLE = ITEMS.register("void_saddle",

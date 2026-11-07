@@ -1,24 +1,20 @@
 {
   "itemGroup.voiddragon": "Void Dragon",
-
   "item.voiddragon.void_shard": "Void Shard",
-  "item.voiddragon.void_shard.lore": "Tames, heals and grows a Void Dragon",
+  "item.voiddragon.void_shard.lore": "Sneak + right-click to call your dragon. Feeds and grows dragons.",
   "item.voiddragon.void_saddle": "Void Saddle",
   "item.voiddragon.void_saddle.lore": "Right-click an adult Void Dragon to saddle it",
   "item.voiddragon.void_armor": "Void Dragon Armor",
   "item.voiddragon.void_armor.lore": "Iron-hard plating: +10 armor, 25% less damage",
   "item.voiddragon.void_dragon_spawn_egg": "Void Dragon Spawn Egg",
-
   "entity.voiddragon.void_dragon": "Void Dragon",
   "entity.voiddragon.void_dragon.hatchling": "Void Dragon Hatchling",
-
   "key.categories.voiddragon": "Void Dragon",
   "key.voiddragon.breath": "Void Breath (hold)",
   "key.voiddragon.rush": "Void Rush",
   "key.voiddragon.flight": "Toggle Flight",
   "key.voiddragon.roar": "Void Roar",
   "key.voiddragon.portal": "Void Step",
-
   "voiddragon.ability.rush": "Void Rush",
   "voiddragon.ability.flight": "Flight",
   "voiddragon.ability.roar": "Void Roar",
@@ -27,10 +23,8 @@
   "voiddragon.stage.hatchling": "Hatchling",
   "voiddragon.stage.juvenile": "Juvenile",
   "voiddragon.stage.adult": "Adult",
-
   "hud.voiddragon.energy": "VOID ENERGY",
   "hud.voiddragon.bond": "BOND",
-
   "message.voiddragon.tamed": "The Void Dragon accepts you as its rider.",
   "message.voiddragon.hatched": "A Void Dragon hatchling claws free of the egg!",
   "message.voiddragon.too_young": "This dragon is too young to carry a rider.",
@@ -40,7 +34,6 @@
   "message.voiddragon.grew": "Your Void Dragon has grown into a %s.",
   "message.voiddragon.flight_disabled": "Flight is disabled on this server.",
   "message.voiddragon.portal_failed": "There is nowhere to step through here.",
-
   "advancement.voiddragon.root.title": "The Void Calls",
   "advancement.voiddragon.root.description": "Obtain a Void Shard — an echo of the dark between worlds",
   "advancement.voiddragon.tame.title": "A Shadow at Your Side",
@@ -49,7 +42,9 @@
   "advancement.voiddragon.saddle.description": "Saddle an adult Void Dragon and take to the sky",
   "advancement.voiddragon.bond.title": "Bound to the Abyss",
   "advancement.voiddragon.bond.description": "Reach a full bond with your Void Dragon",
-
   "voiddragon.configuration.title": "Void Dragon Settings",
-  "voiddragon.configuration.gameplay": "Gameplay"
+  "voiddragon.configuration.gameplay": "Gameplay",
+  "message.voiddragon.recalled": "Your Void Dragon answers the call.",
+  "message.voiddragon.no_dragon": "No bonded Void Dragon is nearby.",
+  "message.voiddragon.dragon_busy": "Your dragon is carrying a rider."
 }
