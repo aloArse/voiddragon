@@ -140,8 +140,8 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         }
 
         for (int i = 0; i < 2; i++) {
-            String side = i == 0 ? "l" : "r";
-            ModelPart horn = head.getChild("horn_" + side + "1");
+            String hornSide = i == 0 ? "l" : "r";
+            ModelPart horn = head.getChild("horn_" + hornSide + "1");
             this.horns[i] = horn;
             this.hornRestX[i] = horn.xRot;
         }
@@ -162,8 +162,8 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         // one crown horn per side; the old three-segment chains were replaced by a
         // single tapered box in tools/dragon_spec.py
         for (int i = 0; i < 2; i++) {
-            String side = i == 0 ? "l" : "r";
-            ModelPart horn = head.getChild("horn_" + side + "1");
+            String hornSide = i == 0 ? "l" : "r";
+            ModelPart horn = head.getChild("horn_" + hornSide + "1");
             this.horns[i] = horn;
             this.hornRestX[i] = horn.xRot;
         }
