@@ -563,12 +563,12 @@ public class VoidDragonEntity extends TamableAnimal {
     public static final float MODEL_LENGTH = 5.20F;
 
     @Override
-    public EntityDimensions getDimensions(Pose pose) {
+    protected EntityDimensions getDefaultDimensions(Pose pose) {
         float scale = getDragonScale();
         // A resting dragon folds its wings, so the box only needs the body width.
         float width = MODEL_WIDTH * scale;
         float height = MODEL_HEIGHT * scale;
-        return EntityDimensions.scalable(width, height).withEyeHeight(height * 0.82F);
+        return EntityDimensions.scalable(width, height);
     }
 
     /** Height of the saddle, in blocks, above the dragon's feet. */
@@ -584,11 +584,6 @@ public class VoidDragonEntity extends TamableAnimal {
     @Override
     public Vec3 getPassengerRidingPosition(Entity passenger) {
         return this.position().add(0.0D, getSeatHeight(), 0.0D);
-    }
-
-    @Override
-    public double getPassengersRidingOffset() {
-        return getSeatHeight();
     }
 
     @Override
