@@ -43,12 +43,12 @@ BELLY_LINE = (38, 30, 50)
 MEMBRANE = (52, 26, 76)
 MEMBRANE_DARK = (34, 16, 50)
 MEMBRANE_VEIN = (92, 48, 132)
-HORN = (96, 88, 116)
-HORN_TIP = (176, 166, 196)
+HORN = (72, 66, 88)
+HORN_TIP = (150, 140, 172)
 FIN = (68, 36, 102)
 FIN_EDGE = (128, 78, 186)
-SKULL = (52, 40, 72)
-SKULL_PLATE = (78, 58, 106)
+SKULL = (46, 35, 64)
+SKULL_PLATE = (66, 50, 92)
 JAW = (56, 46, 72)
 LIMB = (38, 28, 54)
 FOOT = (30, 22, 44)
@@ -255,9 +255,9 @@ def skull_face(canvas, rect, rng, glow_canvas=None):
             if ((ix - x) + (iy - y)) % 6 == 0:
                 canvas.put(ix, iy, mix(SKULL, SKULL_PLATE, 0.8))
     # eye sockets (wider, angular, angled forward-down)
-    eye_y = y + int(h * 0.38)
-    eye_w = max(3, int(w * 0.24))
-    eye_h = max(2, int(h * 0.16))
+    eye_y = y + int(h * 0.40)
+    eye_w = max(3, int(w * 0.20))
+    eye_h = max(2, int(h * 0.10))
     for side in (0, 1):
         ex = x + int(w * (0.14 if side == 0 else 0.60))
         for iy in range(eye_h):
@@ -266,10 +266,10 @@ def skull_face(canvas, rect, rng, glow_canvas=None):
                 taper = 1.0 if (side == 0 and ix > eye_w * 0.25) or (side == 1 and ix < eye_w * 0.75) else 0.45
                 if iy / max(1, eye_h - 1) > taper:
                     continue
-                canvas.put(ex + ix, eye_y + iy, shade(BLACK, 1.0))
+                canvas.put(ex + ix, eye_y + iy, (26, 6, 40))
                 if glow_canvas is not None:
-                    core = mix(VOID_BRIGHT, EYE_CORE, 1.0 - (iy / max(1, eye_h - 1)))
-                    glow_canvas.put(ex + ix, eye_y + iy, core, 255)
+                    core = mix(VOID, EYE_CORE, 1.0 - (iy / max(1, eye_h - 1)))
+                    glow_canvas.put(ex + ix, eye_y + iy, core, 240)
         # brow shadow
         for ix in range(ex - 1, ex + eye_w + 1):
             canvas.put(ix, eye_y - 1, shade(BLACK, 1.0))

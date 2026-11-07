@@ -26,7 +26,7 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
 
     private final ModelPart root;
     private final ModelPart body;
-    private final ModelPart[] neck = new ModelPart[5];
+    private final ModelPart[] neck = new ModelPart[4];
     private final ModelPart head, jaw;
     private final ModelPart[] tail = new ModelPart[6];
     private final ModelPart tailFinTop, tailFinBot;
@@ -40,7 +40,7 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
     private final float[] legRestX = new float[4];
     private final float[] shinRestX = new float[4];
     private final float[] footRestX = new float[4];
-    private final float[] neckRestX = new float[5];
+    private final float[] neckRestX = new float[4];
     private final float headRestX;
     private final float jarRestX;
 
@@ -53,8 +53,7 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         this.neck[1] = neck[0].getChild("neck2");
         this.neck[2] = neck[1].getChild("neck3");
         this.neck[3] = neck[2].getChild("neck4");
-        this.neck[4] = neck[3].getChild("neck5");
-        this.head = neck[4].getChild("head");
+        this.head = neck[3].getChild("head");
         this.jaw = head.getChild("jaw");
 
         this.tail[0] = body.getChild("tail1");
@@ -82,7 +81,7 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
             this.shinRestX[i] = shins[i].xRot;
             this.footRestX[i] = feet[i].xRot;
         }
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 4; i++) {
             this.neckRestX[i] = neck[i].xRot;
         }
         this.headRestX = head.xRot;
@@ -120,9 +119,9 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         // ---- neck: follow the look direction, arch in flight
         float yaw = netHeadYaw * Mth.DEG_TO_RAD;
         float pitch = headPitch * Mth.DEG_TO_RAD;
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 4; i++) {
             ModelPart part = neck[i];
-            part.yRot = yaw * (0.14F + i * 0.05F) + Mth.sin(age * 0.03F + i * 0.4F) * 0.02F;
+            part.yRot = yaw * (0.16F + i * 0.06F) + Mth.sin(age * 0.03F + i * 0.4F) * 0.02F;
             part.xRot = neckRestX[i]
                     + pitch * (0.06F + i * 0.05F)
                     + breathe * 0.02F * (i + 1)
@@ -146,9 +145,9 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         tailFinBot.xRot = 0.15F - fly * flap * 0.08F;
 
         // ---- wings: folded along the back on the ground, spread and beating in flight
-        float armYaw = Mth.lerp(fly, -1.75F, -0.10F);
-        float armRoll = Mth.lerp(fly, 0.35F + breathe * 0.02F, -0.22F - flap * 0.72F);
-        float foreYaw = Mth.lerp(fly, -3.00F, 0.26F);
+        float armYaw = Mth.lerp(fly, -1.95F, -0.10F);
+        float armRoll = Mth.lerp(fly, 0.12F + breathe * 0.02F, -0.22F - flap * 0.72F);
+        float foreYaw = Mth.lerp(fly, -2.85F, 0.26F);
         float fingerYaw = Mth.lerp(fly, -0.35F, 0.30F + flapLag * 0.18F);
         float foreRoll = Mth.lerp(fly, 0.0F, -flapLag * 0.35F);
 

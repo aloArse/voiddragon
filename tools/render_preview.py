@@ -91,10 +91,10 @@ def animated_poses(parts, flying=False, t=0.0):
             over["tail2"] = (0, 0, 0, 0.06 + flap * 0.05, 0, 0)
             over["tail3"] = (0, 0, 0, 0.05 + flap * 0.06, 0, 0)
         else:
-            over["wing_l"] = (0, 0, 0, 0, -1.75, 0.35)
-            over["wing_r"] = (0, 0, 0, 0, 1.75, -0.35)
-            over["wing_l_fore"] = (0, 0, 0, 0, -3.0, 0)
-            over["wing_r_fore"] = (0, 0, 0, 0, 3.0, 0)
+            over["wing_l"] = (0, 0, 0, 0, -1.95, 0.12)
+            over["wing_r"] = (0, 0, 0, 0, 1.95, -0.12)
+            over["wing_l_fore"] = (0, 0, 0, 0, -2.85, 0)
+            over["wing_r_fore"] = (0, 0, 0, 0, 2.85, 0)
             over["tail2"] = (0, 0, 0, -0.06, 0.1, 0)
             over["tail3"] = (0, 0, 0, -0.05, 0.16, 0)
             over["tail4"] = (0, 0, 0, -0.03, 0.2, 0)
@@ -168,7 +168,7 @@ def shade_of(normal):
 
 
 # --------------------------------------------------------------- renderer
-def render_view(yaw_deg, pitch_deg, size=(1000, 780), scale=9.0, distance=95.0,
+def render_view(yaw_deg, pitch_deg, size=(1000, 780), scale=9.0, distance=900.0,
                flying=False, gear=False, t=0.9, name="three_quarter"):
     tex = Image.open(TEX).convert("RGBA")
     glow = Image.open(GLOW).convert("RGBA")
@@ -220,21 +220,57 @@ def render_view(yaw_deg, pitch_deg, size=(1000, 780), scale=9.0, distance=95.0,
     for i in range(26, 0, -1):
         gd.ellipse([width / 2 - i * 20, height / 2 - i * 14,
                     width / 2 + i * 20, height / 2 + i * 14],
-                   fill=(40 + i, 22 + i, 66 + i, 4))
+                   fill=(38 + i, 20 + i, 62 + i, 1))
     img = Image.alpha_composite(img, glow_bg.filter(ImageFilter.GaussianBlur(6)))
 
-    centre = (0.0, 9.0, 2.0)
+    # auto frame: centre on the model bounds and fit the projection to the canvas
+    xs, ys, zs = [], [], []
+    for part, pose in animated_poses(parts, flying=flying, t=t):
+        m = matrix_for(part)
+        ox, oy, oz, w, h, d = part["box"]
+        for corner in ((ox, oy, oz), (ox + w, oy, oz), (ox, oy + h, oz), (ox, oy, oz + d),
+                       (ox + w, oy + h, oz), (ox + w, oy, oz + d), (ox, oy + h, oz + d),
+                       (ox + w, oy + h, oz + d)):
+            p = xform(m, corner)
+            xs.append(p[0]); ys.append(p[1]); zs.append(p[2])
+    centre = ((min(xs) + max(xs)) / 2.0, (min(ys) + max(ys)) / 2.0, (min(zs) + max(zs)) / 2.0)
     yaw = math.radians(yaw_deg)
     pitch = math.radians(pitch_deg)
 
     def project(p):
         x, y, z = p[0] - centre[0], p[1] - centre[1], p[2] - centre[2]
+        # (centred below via view_shift, applied after the fit)
         cy, sy = math.cos(yaw), math.sin(yaw)
         x, z = x * cy + z * sy, -x * sy + z * cy
         cp, sp = math.cos(pitch), math.sin(pitch)
         y, z = y * cp - z * sp, y * sp + z * cp
         f = distance / max(1.0, distance + z)
-        return (width / 2 + x * scale * f, height / 2 - y * scale * f, z)
+        return (width / 2 + (x - view_shift[0]) * scale * f,
+                height / 2 - (y - view_shift[1]) * scale * f, z)
+
+    # fit the projection to the canvas: project every cube corner at scale 1 first
+    def rot_only(p):
+        x, y, z = p[0] - centre[0], p[1] - centre[1], p[2] - centre[2]
+        cy, sy = math.cos(yaw), math.sin(yaw)
+        x, z = x * cy + z * sy, -x * sy + z * cy
+        cp, sp = math.cos(pitch), math.sin(pitch)
+        y, z = y * cp - z * sp, y * sp + z * cp
+        return x, y
+
+    rx, ry = [], []
+    for part, pose in animated_poses(parts, flying=flying, t=t):
+        m = matrix_for(part)
+        ox, oy, oz, w, h, d = part["box"]
+        for corner in ((ox, oy, oz), (ox + w, oy, oz), (ox, oy + h, oz), (ox, oy, oz + d),
+                       (ox + w, oy + h, oz), (ox + w, oy, oz + d), (ox, oy + h, oz + d),
+                       (ox + w, oy + h, oz + d)):
+            px_, py_ = rot_only(xform(m, corner))
+            rx.append(px_)
+            ry.append(py_)
+    span_x = max(rx) - min(rx)
+    span_y = max(ry) - min(ry)
+    view_shift = ((min(rx) + max(rx)) / 2.0, (min(ry) + max(ry)) / 2.0)
+    scale = min(width * 0.88 / max(1.0, span_x), height * 0.90 / max(1.0, span_y))
 
     zbuf = [[1e9] * width for _ in range(height)]
 
