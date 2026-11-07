@@ -16,9 +16,11 @@ public class VoidDragonRenderer extends MobRenderer<VoidDragonEntity, VoidDragon
             ResourceLocation.fromNamespaceAndPath(VoidDragonMod.MODID, "textures/entity/void_dragon.png");
     private static final ResourceLocation GLOW =
             ResourceLocation.fromNamespaceAndPath(VoidDragonMod.MODID, "textures/entity/void_dragon_glow.png");
+    private static final ResourceLocation ARMORED =
+            ResourceLocation.fromNamespaceAndPath(VoidDragonMod.MODID, "textures/entity/void_dragon_armored.png");
 
     public VoidDragonRenderer(EntityRendererProvider.Context context) {
-        super(context, new VoidDragonModel(context.bakeLayer(VoidDragonModel.LAYER)), 1.7F);
+        super(context, new VoidDragonModel(context.bakeLayer(VoidDragonModel.LAYER)), 1.9F);
         // Fullbright emissive layer: glowing eyes, Void veins, wing veins, horn tips.
         this.addLayer(new EyesLayer<VoidDragonEntity, VoidDragonModel>(this) {
             @Override
@@ -30,19 +32,19 @@ public class VoidDragonRenderer extends MobRenderer<VoidDragonEntity, VoidDragon
 
     @Override
     public ResourceLocation getTextureLocation(VoidDragonEntity entity) {
-        return TEXTURE;
+        return entity.isArmored() ? ARMORED : TEXTURE;
     }
 
     @Override
     protected void setupRotations(VoidDragonEntity entity, PoseStack poseStack, float bob, float yBodyRot,
                                   float partialTick, float scale) {
         super.setupRotations(entity, poseStack, bob, yBodyRot, partialTick, scale);
+        // MobRenderer clamps the body pitch to +/-90; a flying dragon banks with its look direction.
         float fly = entity.getFlyProgress(partialTick);
         if (fly > 0.01F) {
-            // Bank the whole body with the flight pitch, around the body centre.
             float pitch = Mth.lerp(partialTick, entity.xRotO, entity.getXRot());
             poseStack.translate(0.0F, 1.2F, 0.0F);
-            poseStack.mulPose(Axis.XP.rotationDegrees(pitch * fly));
+            poseStack.mulPose(Axis.XP.rotationDegrees(pitch * fly * 0.85F));
             poseStack.translate(0.0F, -1.2F, 0.0F);
         }
     }

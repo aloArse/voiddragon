@@ -18,6 +18,7 @@ public class ClientModEvents {
     public static final KeyMapping RUSH = new KeyMapping("key.voiddragon.rush", GLFW.GLFW_KEY_G, CATEGORY);
     public static final KeyMapping FLIGHT = new KeyMapping("key.voiddragon.flight", GLFW.GLFW_KEY_X, CATEGORY);
     public static final KeyMapping ROAR = new KeyMapping("key.voiddragon.roar", GLFW.GLFW_KEY_V, CATEGORY);
+    public static final KeyMapping PORTAL = new KeyMapping("key.voiddragon.portal", GLFW.GLFW_KEY_C, CATEGORY);
 
     @SubscribeEvent
     public static void registerKeys(RegisterKeyMappingsEvent event) {
@@ -25,6 +26,7 @@ public class ClientModEvents {
         event.register(RUSH);
         event.register(FLIGHT);
         event.register(ROAR);
+        event.register(PORTAL);
     }
 
     @SubscribeEvent

@@ -7,7 +7,10 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
-/** Sent client -> server when the rider presses an ability key. 0 = breath, 1 = rush, 2 = flight, 3 = roar. */
+/**
+ * Client -&gt; server: the rider pressed an ability key.
+ * 0 = void breath, 1 = void rush, 2 = flight toggle, 3 = void roar, 4 = void step.
+ */
 public record AbilityPayload(int ability) implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<AbilityPayload> TYPE =
             new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(VoidDragonMod.MODID, "ability"));

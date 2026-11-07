@@ -21,7 +21,8 @@ public class ClientGameEvents {
         if (player == null || mc.screen != null || !(player.getVehicle() instanceof VoidDragonEntity)) {
             return;
         }
-        if (ClientModEvents.BREATH.isDown()) {
+        // Breath is a channel: fire while the key is held (throttled to 4x a second).
+        if (ClientModEvents.BREATH.isDown() && player.tickCount % 5 == 0) {
             PacketDistributor.sendToServer(new AbilityPayload(0));
         }
         while (ClientModEvents.RUSH.consumeClick()) {
@@ -32,6 +33,9 @@ public class ClientGameEvents {
         }
         while (ClientModEvents.ROAR.consumeClick()) {
             PacketDistributor.sendToServer(new AbilityPayload(3));
+        }
+        while (ClientModEvents.PORTAL.consumeClick()) {
+            PacketDistributor.sendToServer(new AbilityPayload(4));
         }
     }
 }

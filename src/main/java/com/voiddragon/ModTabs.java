@@ -17,6 +17,8 @@ public class ModTabs {
                     .icon(() -> new ItemStack(ModItems.VOID_SHARD.get()))
                     .displayItems((parameters, output) -> {
                         output.accept(ModItems.VOID_SHARD.get());
+                        output.accept(ModItems.VOID_SADDLE.get());
+                        output.accept(ModItems.VOID_ARMOR.get());
                         output.accept(ModItems.VOID_DRAGON_SPAWN_EGG.get());
                     })
                     .build());

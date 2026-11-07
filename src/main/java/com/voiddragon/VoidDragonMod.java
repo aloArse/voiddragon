@@ -20,6 +20,7 @@ public class VoidDragonMod {
         ModEntities.ENTITIES.register(modEventBus);
         ModItems.ITEMS.register(modEventBus);
         ModTabs.TABS.register(modEventBus);
+        ModTriggers.TRIGGERS.register(modEventBus);
 
         modContainer.registerConfig(ModConfig.Type.COMMON, VoidDragonConfig.SPEC);
     }

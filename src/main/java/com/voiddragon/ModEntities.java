@@ -13,9 +13,10 @@ public class ModEntities {
 
     public static final DeferredHolder<EntityType<?>, EntityType<VoidDragonEntity>> VOID_DRAGON =
             ENTITIES.register("void_dragon", () -> EntityType.Builder.of(VoidDragonEntity::new, MobCategory.CREATURE)
-                    .sized(2.6F, 2.8F)
-                    .passengerAttachments(1.8F)
-                    .clientTrackingRange(10)
+                    .sized(2.4F, 2.7F)
+                    .passengerAttachments(1.75F)
+                    .clientTrackingRange(12)
+                    .updateInterval(2)
                     .fireImmune()
                     .build("void_dragon"));
 }
