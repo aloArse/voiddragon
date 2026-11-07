@@ -146,34 +146,44 @@ jar {
 }
 
 // ---------------------------------------------------------------------------
-// CI helper: echo the finished jar as base64 workflow annotations. GitHub
-// Actions uploads artifacts to a host that not every client can reach, but
-// annotations are readable through the REST API, which makes the built jar
-// retrievable in restricted environments.
+// CI helper: report what actually landed inside the jar (entry inventory plus
+// the expanded mods.toml) as workflow annotations, so packaging problems show
+// up on the run page even when console logs are not available to a client.
 // ---------------------------------------------------------------------------
 if (System.getenv('GITHUB_ACTIONS') == 'true') {
-    def exportJar = tasks.register('exportJar') {
+    def reportJar = tasks.register('reportJarContents') {
         group = 'verification'
-        description = 'Emits the built jar as base64 CI annotations.'
+        description = 'Emits the jar inventory and expanded mod metadata as CI annotations.'
         mustRunAfter tasks.named('jar')
         doLast {
             def jars = fileTree(layout.buildDirectory.dir('libs')) { include '*.jar' }.files
             if (jars.isEmpty()) {
-                println '::notice::exportJar: no jar produced'
+                println '::error::reportJarContents: no jar was produced'
                 return
             }
+            def clean = { String v -> (v ?: '').replace('%', '%25').replace('\r', '%0D').replace('\n', ' ') }
             jars.each { f ->
-                def b64 = f.bytes.encodeBase64().toString()
-                def chunkSize = 24000
-                def total = Math.ceil(b64.length() / chunkSize) as int
-                println "::notice::JAR_NAME=${f.name}"
-                for (int i = 0; i < total; i++) {
-                    int from = i * chunkSize
-                    int to = Math.min(b64.length(), from + chunkSize)
-                    println "::notice::JAR_CHUNK=${i}/${total}:${b64.substring(from, to)}"
+                def zip = new java.util.zip.ZipFile(f)
+                try {
+                    def entries = zip.entries().toList().collect { it.name }.sort()
+                    println "::notice::JAR=${f.name} (${f.length()} bytes, ${entries.size()} entries)"
+                    def modsToml = zip.getEntry('META-INF/neoforge.mods.toml')
+                    if (modsToml != null) {
+                        def text = zip.getInputStream(modsToml).getText('UTF-8')
+                        text.readLines().findAll { it.trim() }.take(24).each { line ->
+                            println "::notice::mods.toml | ${clean(line)}"
+                        }
+                    }
+                    entries.findAll { it.endsWith('.class') || it.endsWith('.png') || it.endsWith('.json') }
+                            .groupBy { it.substring(0, it.lastIndexOf('/') + 1) }
+                            .each { dir, names ->
+                                println "::notice::jar ${dir} -> ${names.size()} files"
+                            }
+                } finally {
+                    zip.close()
                 }
             }
         }
     }
-    tasks.named('build').configure { finalizedBy(exportJar) }
+    tasks.named('build').configure { finalizedBy reportJar }
 }
