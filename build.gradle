@@ -230,7 +230,7 @@ if (System.getenv('GITHUB_ACTIONS') == 'true') {
             println "::notice::stageJar: staged ${jar.name} (${jar.length()} bytes) at ${target}"
             git(['git', 'config', 'user.email', 'actions@users.noreply.github.com'])
             git(['git', 'config', 'user.name', 'voiddragon-ci'])
-            git(['git', 'add', '-f', 'dist/' + jar.name])
+            git(['git', 'add', '-f', target.absolutePath])
             if (git(['git', 'diff', '--cached', '--quiet']) == 0) {
                 println '::notice::stageJar: no changes to commit'
                 return
