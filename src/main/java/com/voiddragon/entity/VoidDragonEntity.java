@@ -21,6 +21,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
@@ -30,6 +31,8 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.AgeableMob;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.SpawnPlacements;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.TamableAnimal;
@@ -54,7 +57,10 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.Difficulty;
+import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -166,6 +172,32 @@ public class VoidDragonEntity extends TamableAnimal {
         super(type, level);
         this.xpReward = 160;
         this.setPersistenceRequired();
+    }
+
+    /**
+     * Wild Void Dragons may only spawn in the End, on solid ground, in a spot with
+     * some head room; peaceful difficulty keeps them out entirely. The biome
+     * modifier in data/voiddragon/neoforge/biome_modifier decides where they show up.
+     */
+    public static boolean checkDragonSpawnRules(EntityType<VoidDragonEntity> type, ServerLevelAccessor level,
+                                                net.minecraft.world.entity.MobSpawnType spawnType, BlockPos pos,
+                                                net.minecraft.util.RandomSource random) {
+        if (level.getDifficulty() == net.minecraft.world.Difficulty.PEACEFUL) {
+            return false;
+        }
+        if (!level.getLevel().dimension().equals(Level.END)) {
+            return false;
+        }
+        if (!net.minecraft.world.entity.SpawnPlacements.checkSpawnRules(type, level, spawnType, pos, random)) {
+            return false;
+        }
+        // Needs 4 blocks of air above the ground and a floor to stand on.
+        for (int i = 0; i < 4; i++) {
+            if (!level.getBlockState(pos.above(i)).canBeReplaced()) {
+                return false;
+            }
+        }
+        return level.getBlockState(pos.below()).isFaceSturdy(level, pos.below(), net.minecraft.core.Direction.UP);
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -1392,6 +1424,12 @@ public class VoidDragonEntity extends TamableAnimal {
     @Override
     public boolean removeWhenFarAway(double distanceToClosestPlayer) {
         return false;
+    }
+
+    /** Tamed dragons must not fill up the mob cap of the chunk they live in. */
+    @Override
+    public boolean isPersistenceRequired() {
+        return this.isTame() || super.isPersistenceRequired();
     }
 
     // ---------------------------------------------------------------- sounds

@@ -1,0 +1,12 @@
+{
+  "type": "neoforge:add_spawns",
+  "biomes": "#minecraft:is_end",
+  "spawners": [
+    {
+      "type": "voiddragon:void_dragon",
+      "weight": 4,
+      "minCount": 1,
+      "maxCount": 1
+    }
+  ]
+}

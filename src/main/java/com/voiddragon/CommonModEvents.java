@@ -13,13 +13,28 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.entity.SpawnPlacements;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.util.RandomSource;
+import net.minecraft.core.BlockPos;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
+import net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 @EventBusSubscriber(modid = VoidDragonMod.MODID, bus = EventBusSubscriber.Bus.MOD)
 public class CommonModEvents {
+
+    @SubscribeEvent
+    public static void onSpawnPlacements(RegisterSpawnPlacementsEvent event) {
+        // Wild dragons only spawn in the End, on the ground of the outer islands.
+        event.register(ModEntities.VOID_DRAGON.get(), SpawnPlacements.Type.ON_GROUND,
+                net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                VoidDragonEntity::checkDragonSpawnRules, RegisterSpawnPlacementsEvent.Operation.REPLACE);
+    }
 
     @SubscribeEvent
     public static void registerAttributes(EntityAttributeCreationEvent event) {

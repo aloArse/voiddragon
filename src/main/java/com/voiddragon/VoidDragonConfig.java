@@ -22,6 +22,7 @@ public class VoidDragonConfig {
     public final ModConfigSpec.BooleanValue voidBreathBreaksBlocks;
     public final ModConfigSpec.BooleanValue roarAffectsPlayers;
     public final ModConfigSpec.BooleanValue hatchDragonEggs;
+    public final ModConfigSpec.BooleanValue wildDragonsInTheEnd;
     public final ModConfigSpec.DoubleValue abilityCooldownScale;
     public final ModConfigSpec.IntValue naturalGrowthSeconds;
 
@@ -36,6 +37,9 @@ public class VoidDragonConfig {
         roarAffectsPlayers = builder
                 .comment("The Void Roar hurts and darkens other players, not only monsters.")
                 .define("roarAffectsPlayers", true);
+        wildDragonsInTheEnd = builder
+                .comment("Wild Void Dragons slowly spawn in the End so they can be found in survival.")
+                .define("wildDragonsInTheEnd", true);
         hatchDragonEggs = builder
                 .comment("Right-clicking a Dragon Egg with a Void Shard hatches a Void Dragon hatchling.")
                 .define("hatchDragonEggs", true);
