@@ -31,7 +31,7 @@ public class CommonModEvents {
     @SubscribeEvent
     public static void onSpawnPlacements(RegisterSpawnPlacementsEvent event) {
         // Wild dragons only spawn in the End, on the ground of the outer islands.
-        event.register(ModEntities.VOID_DRAGON.get(), SpawnPlacements.Type.ON_GROUND,
+        event.register(ModEntities.VOID_DRAGON.get(), net.minecraft.world.entity.SpawnPlacementTypes.ON_GROUND,
                 net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                 VoidDragonEntity::checkDragonSpawnRules, RegisterSpawnPlacementsEvent.Operation.REPLACE);
     }
