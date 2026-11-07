@@ -50,6 +50,13 @@ public class VoidDragonRenderer extends MobRenderer<VoidDragonEntity, VoidDragon
     }
 
     @Override
+    protected void scale(VoidDragonEntity entity, PoseStack poseStack, float partialTick) {
+        // The model is built at roughly 2.2 blocks tall; match the entity hitbox and the
+        // rider attachment height so the saddle lines up with the player's seat.
+        poseStack.scale(1.1F, 1.1F, 1.1F);
+    }
+
+    @Override
     protected float getFlipDegrees(VoidDragonEntity entity) {
         return 0.0F; // a dragon doesn't tip over when it dies
     }
