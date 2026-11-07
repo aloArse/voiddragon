@@ -22,3 +22,5 @@ Thumbs.db
 # Local scratch
 /tmp/
 *.log
+
+tools/__pycache__/
