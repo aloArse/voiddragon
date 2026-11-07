@@ -37,6 +37,10 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
 
     private final ModelPart root;
     private final ModelPart body;
+    /** Rest offsets of the torso pivot, so animation stays additive. */
+    private final float bodyRestY;
+    private final float bodyRestX;
+    private final float bodyRestZ;
     private final ModelPart jaw;
     private final ModelPart head;
     private final float headRestX;
@@ -69,6 +73,9 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         super(RenderType::entityCutoutNoCull);
         this.root = root;
         this.body = root.getChild("body");
+        this.bodyRestX = body.x;
+        this.bodyRestY = body.y;
+        this.bodyRestZ = body.z;
 
         ModelPart previous = body;
         for (int i = 0; i < neck.length; i++) {
@@ -174,9 +181,10 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         setGearVisible(entity.isSaddled(), entity.isArmored());
 
         // ------------------------------------------------ torso: breathe, bob, bank
-        body.x = 0.0F;
-        body.y = breathe * 0.30F - fly * (0.6F + Math.abs(flap) * 0.9F) + (sit ? 2.6F : 0.0F);
-        body.z = 0.0F;
+        body.x = bodyRestX;
+        // additive: the rig places the torso pivot high above the feet
+        body.y = bodyRestY + breathe * 0.30F - fly * (0.6F + Math.abs(flap) * 0.9F) + (sit ? 2.6F : 0.0F);
+        body.z = bodyRestZ;
         body.xRot = fly * (flapLag * 0.05F + 0.03F) + (sit ? 0.10F : 0.0F);
         body.yRot = -limbSwing * 0.06F * limbSwingAmount * (1.0F - fly);
         body.zRot = fly * Mth.sin(age * 0.04F) * 0.03F;

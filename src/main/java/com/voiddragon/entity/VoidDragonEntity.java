@@ -344,6 +344,9 @@ public class VoidDragonEntity extends TamableAnimal {
 
     /** The single size number everything else (render, hitbox, seat, reach) uses. */
     public float getDragonScale() {
+        if (!dataReady()) {
+            return DragonStage.ADULT.baseScale;
+        }
         float override = getSizeOverride();
         return override > 0.0F ? override : getAutomaticScale();
     }
@@ -562,9 +565,18 @@ public class VoidDragonEntity extends TamableAnimal {
     /** The authored model is a bit longer than it is wide (snout and tail). */
     public static final float MODEL_LENGTH = 5.20F;
 
+    /** Synced data does not exist yet while the entity is still being constructed. */
+    private boolean dataReady() {
+        try {
+            return this.getEntityData() != null;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
     @Override
     protected EntityDimensions getDefaultDimensions(Pose pose) {
-        float scale = getDragonScale();
+        float scale = dataReady() ? getDragonScale() : DragonStage.ADULT.baseScale;
         // A resting dragon folds its wings, so the box only needs the body width.
         float width = MODEL_WIDTH * scale;
         float height = MODEL_HEIGHT * scale;
