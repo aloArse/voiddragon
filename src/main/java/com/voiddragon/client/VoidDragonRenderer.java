@@ -20,7 +20,7 @@ public class VoidDragonRenderer extends MobRenderer<VoidDragonEntity, VoidDragon
             ResourceLocation.fromNamespaceAndPath(VoidDragonMod.MODID, "textures/entity/void_dragon_armored.png");
 
     public VoidDragonRenderer(EntityRendererProvider.Context context) {
-        super(context, new VoidDragonModel(context.bakeLayer(VoidDragonModel.LAYER)), 1.9F);
+        super(context, new VoidDragonModel(context.bakeLayer(VoidDragonModel.LAYER)), 2.1F);
         // Fullbright emissive layer: glowing eyes, Void veins, wing veins, horn tips.
         this.addLayer(new EyesLayer<VoidDragonEntity, VoidDragonModel>(this) {
             @Override
@@ -51,9 +51,9 @@ public class VoidDragonRenderer extends MobRenderer<VoidDragonEntity, VoidDragon
 
     @Override
     protected void scale(VoidDragonEntity entity, PoseStack poseStack, float partialTick) {
-        // The model is built at roughly 2.2 blocks tall; match the entity hitbox and the
-        // rider attachment height so the saddle lines up with the player's seat.
-        poseStack.scale(1.1F, 1.1F, 1.1F);
+        // The model is built at ~2.3 blocks tall; the entity hitbox is 2.4 blocks, so a
+        // single uniform factor lines the saddle up with the passenger attachment.
+        poseStack.scale(1.0F, 1.0F, 1.0F);
     }
 
     @Override
