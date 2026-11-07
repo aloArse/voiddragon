@@ -6,6 +6,20 @@
 
 ---
 
+## 🖼️ نمای اژدها
+
+| روی زمین | در حال پرواز |
+|---|---|
+| ![اژدها](docs/dragon_showcase.png) | ![پرواز](docs/dragon_flying.png) |
+
+| با زین و زره | از روبه‌رو |
+|---|---|
+| ![زره](docs/dragon_gear.png) | ![روبرو](docs/dragon_front.png) |
+
+> این تصاویر با رندرر آفلاین خودِ پروژه (`tools/render_preview.py`) مستقیماً از همان مدل و تکسچری ساخته شده‌اند که در بازی استفاده می‌شود.
+
+---
+
 ## 📥 ۱. دانلود فایل ماد (jar)
 
 فایل نصبی ماد به‌صورت خودکار در GitHub Actions ساخته می‌شود:
@@ -128,7 +142,15 @@ gradle build            # یا: ./gradlew build
 ```
 
 ساخت خودکار در GitHub Actions انجام می‌شود (هر push → build → artifact).
-اسکریپت `tools/pack_source.sh` آرشیو `voiddragon-source.zip` را که ورک‌فلوی فعلی از آن build می‌کند همگام می‌کند، و `tools/gen_textures.py` همهٔ تکسچرها (اژدها، زره، زین، آیتم‌ها، آیکون HUD) را به‌صورت برنامه‌ای می‌کشد.
+| ابزار | کار |
+|---|---|
+| `tools/dragon_spec.py` | تنها منبع حقیقت هندسهٔ اژدها (۶۹ مکعب) |
+| `tools/gen_model.py` | از spec، کلاس جاوا `DragonRig.java` و UVها را می‌سازد |
+| `tools/gen_textures.py` | تکسچر ۵۱۲×۵۱۲ (اژدها، زره، زین، آیتم‌ها، آیکون HUD) را می‌کشد |
+| `tools/render_preview.py` | رندرر آفلاین برای دیدن مدل بدون اجرای بازی |
+| `tools/pack_source.sh` | آرشیو `voiddragon-source.zip` را که ورک‌فلوی CI از آن build می‌کند همگام می‌کند |
+
+یعنی اگر روزی خواستی مدل یا تکسچر را تغییر بدهی، فقط `dragon_spec.py` را عوض کن و سه اسکریپت را اجرا کن.
 
 ### ساختار پروژه
 ```

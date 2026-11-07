@@ -170,7 +170,6 @@ public class VoidDragonEntity extends TamableAnimal {
     public VoidDragonEntity(EntityType<? extends VoidDragonEntity> type, Level level) {
         super(type, level);
         this.xpReward = 160;
-        this.setPersistenceRequired();
     }
 
     /**
