@@ -72,9 +72,9 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
     private final float[] shinRestX = new float[4];
     private final float[] footRestX = new float[4];
 
-    private final ModelPart[] crests = new ModelPart[2];
-    private final ModelPart[] horns = new ModelPart[6];
-    private final float[] hornRestX = new float[6];
+    /** One crown horn per side. */
+    private final ModelPart[] horns = new ModelPart[2];
+    private final float[] hornRestX = new float[2];
 
     public VoidDragonModel(ModelPart root) {
         super(RenderType::entityCutoutNoCull);
@@ -139,22 +139,33 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
             this.footRestX[i] = foot.xRot;
         }
 
-        this.crests[0] = head.getChild("crest_l");
-        this.crests[1] = head.getChild("crest_r");
-        int h = 0;
-        for (String side : new String[]{"l", "r"}) {
-            ModelPart base = head.getChild("horn_" + side + "1");
-            horns[h] = base;
-            hornRestX[h] = base.xRot;
-            h++;
-            ModelPart second = base.getChild("horn_" + side + "2");
-            horns[h] = second;
-            hornRestX[h] = second.xRot;
-            h++;
-            ModelPart third = second.getChild("horn_" + side + "3");
-            horns[h] = third;
-            hornRestX[h] = third.xRot;
-            h++;
+        for (int i = 0; i < 2; i++) {
+            String side = i == 0 ? "l" : "r";
+            ModelPart horn = head.getChild("horn_" + side + "1");
+            this.horns[i] = horn;
+            this.hornRestX[i] = horn.xRot;
+        }
+
+        String[] sides = {"fl", "fr", "bl", "br"};
+        for (int i = 0; i < 4; i++) {
+            ModelPart thigh = body.getChild("leg_" + sides[i] + "_thigh");
+            ModelPart shin = thigh.getChild("leg_" + sides[i] + "_shin");
+            ModelPart foot = shin.getChild("leg_" + sides[i] + "_foot");
+            legs.add(thigh);
+            legs.add(shin);
+            legs.add(foot);
+            this.thighRestX[i] = thigh.xRot;
+            this.shinRestX[i] = shin.xRot;
+            this.footRestX[i] = foot.xRot;
+        }
+
+        // one crown horn per side; the old three-segment chains were replaced by a
+        // single tapered box in tools/dragon_spec.py
+        for (int i = 0; i < 2; i++) {
+            String side = i == 0 ? "l" : "r";
+            ModelPart horn = head.getChild("horn_" + side + "1");
+            this.horns[i] = horn;
+            this.hornRestX[i] = horn.xRot;
         }
         setGearVisible(false, false);
     }
@@ -239,9 +250,6 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
             animateFlightWings(fly, flap, flapLag);
         } else {
             animateFoldedWings(fly, breathe, mouth, limbSwing, limbSwingAmount);
-        }
-        for (ModelPart crest : crests) {
-            crest.xRot = 1.00F + Mth.sin(age * 0.06F) * 0.05F + mouth * 0.25F;
         }
         for (int i = 0; i < horns.length; i++) {
             horns[i].xRot = hornRestX[i] + Mth.sin(age * 0.03F + i) * 0.012F;

@@ -35,44 +35,44 @@ UV_FILE = os.path.join(ROOT, "tools/atlas_uv.json")
 # ------------------------------------------------------------------- palette
 OBSIDIAN = (26, 22, 36)
 # Hide: matte blue-black slate, a touch of colour so form reads on a dark model.
-HIDE = (44, 38, 60)
-HIDE_MID = (58, 50, 80)
-HIDE_HI = (96, 86, 128)
-EDGE_DARK = (18, 15, 26)
-CRACK = (104, 62, 150)
-CRACK_HOT = (178, 112, 232)
+HIDE = (48, 40, 72)
+HIDE_MID = (62, 52, 92)
+HIDE_HI = (100, 86, 140)
+EDGE_DARK = (22, 18, 34)
+CRACK = (150, 92, 214)
+CRACK_HOT = (214, 150, 255)
 
 # Ventral plates: warmer, lighter, clearly a different material.
-BELLY = (86, 76, 104)
-BELLY_LINE = (34, 28, 46)
+BELLY = (78, 70, 96)
+BELLY_LINE = (32, 26, 48)
 
 # Dorsal ridge / spurs: darker slate to separate them from the hide.
-RIDGE = (34, 28, 48)
-RIDGE_HI = (74, 60, 104)
+RIDGE = (36, 30, 54)
+RIDGE_HI = (78, 64, 116)
 
 # Blades (spurs, crest, spade): dark bone-slate, bright edge.
-BLADE = (52, 44, 68)
+BLADE = (54, 46, 76)
 BLADE_EDGE = (176, 112, 250)
 
 # Wing membrane: the darkest surface on the model, so it can silhouette.
-MEMBRANE_DEEP = (22, 14, 34)
-MEMBRANE_MID = (44, 30, 66)
+MEMBRANE_DEEP = (26, 16, 40)
+MEMBRANE_MID = (48, 32, 74)
 MEMBRANE_VEIN = (128, 82, 196)
 
 # Bone: pale warm grey. The only light material, which is what sells the horns.
-BONE = (198, 190, 172)
-BONE_SHADE = (146, 138, 124)
-BONE_TIP = (238, 234, 222)
+BONE = (206, 204, 208)
+BONE_SHADE = (150, 148, 158)
+BONE_TIP = (240, 240, 246)
 EYE_GLOW = (212, 158, 255)
 
 # Skull: same slate as the hide but cooler and with pale plate edges.
-SKULL = (46, 40, 62)
-SKULL_PLATE = (78, 70, 102)
-MUZZLE = (50, 44, 66)
-JAW = (36, 31, 48)
+SKULL = (54, 46, 78)
+SKULL_PLATE = (92, 80, 124)
+MUZZLE = (58, 49, 82)
+JAW = (42, 35, 60)
 
-LIMB = (40, 35, 54)
-FOOT = (28, 24, 38)
+LIMB = (46, 39, 68)
+FOOT = (34, 28, 50)
 
 VOID = (168, 92, 255)
 VOID_BRIGHT = (214, 158, 255)
@@ -164,7 +164,7 @@ class Canvas:
         d = (dx * dx) * 0.85 + (dy * dy)
         # deterministic per-scale brightness so no two scales match
         hv = (row * 73 + col * 151 + seed_shift * 17) % 23
-        jit = 0.80 + hv / 23.0 * 0.45
+        jit = 0.90 + hv / 23.0 * 0.22
         base_c = np.array(shade(base, factor), dtype=np.float32)[None, None, :] * jit[..., None]
         hi_c = np.array(shade(hi, factor), dtype=np.float32)[None, None, :] * jit[..., None]
         dark_c = np.array(shade(dark, factor), dtype=np.float32)
@@ -279,8 +279,8 @@ class Canvas:
             g[core] = np.array(VOID_BRIGHT, dtype=np.float32)
             glow.rgb[y:y + h, x:x + w] = g
             ga = glow.a[y:y + h, x:x + w]
-            ga[mask] = 0.30
-            ga[core] = 0.55
+            ga[mask] = 0.16
+            ga[core] = 0.30
             glow.a[y:y + h, x:x + w] = ga
 
     def ao(self, rect, strength=0.62, depth=4):
@@ -318,7 +318,7 @@ def paint_hide(cv, glow, part, rects, face, rng, armoured=False):
     # one texel is 1/16 of a block, so fissures must be few and thin or the
     # whole surface turns into lavender blocks
     area = rect[2] * rect[3]
-    cv.streaks(rect, glow, f, count=max(1, min(2, area // 900)),
+    cv.streaks(rect, glow, f, count=1,
                seed=hash(part["name"] + face) % 9999)
     cv.ao(rect, 0.70 if face in ("front", "back") else 0.55)
 
@@ -337,7 +337,7 @@ def paint_belly(cv, glow, part, rects, face, rng):
     yy, xx = np.mgrid[0:h, 0:w]
     cv.fill(rect, BELLY, f, noise=4)
     row_h = max(3.0, h / 5.0)
-    chin = np.array(shade(mix(BELLY, BONE, 0.30), f * 1.04), dtype=np.float32)
+    chin = np.array(shade(mix(BELLY, BONE, 0.18), f * 1.02), dtype=np.float32)
     deep = np.array(shade(mix(BELLY, EDGE_DARK, 0.55), f), dtype=np.float32)
     seam = np.array(shade(BELLY_LINE, f), dtype=np.float32)
     reg = cv.rgb[y:y + h, x:x + w].copy()
@@ -358,8 +358,8 @@ def paint_belly(cv, glow, part, rects, face, rng):
         g = glow.rgb[y:y + h, x:x + w]
         ga = glow.a[y:y + h, x:x + w]
         gap = (v > 0.93)
-        g[gap] = np.array(CRACK_HOT, dtype=np.float32) * 0.35
-        ga[gap] = 0.22
+        g[gap] = np.array(CRACK_HOT, dtype=np.float32) * 0.12
+        ga[gap] = 0.05
         glow.rgb[y:y + h, x:x + w] = g
         glow.a[y:y + h, x:x + w] = ga
     cv.ao(rect, 0.60)
@@ -394,11 +394,11 @@ def paint_blade(cv, glow, part, rects, face, rng):
         t = xx / max(1.0, w - 1.0)               # tips point outward on top/bottom
     base = np.array(shade(BLADE, f), dtype=np.float32)[None, None, :]
     edge = np.array(shade(BLADE_EDGE, f), dtype=np.float32)[None, None, :]
-    reg = base + (edge - base) * (t[..., None] ** 1.6)
+    reg = base + (edge - base) * (t[..., None] ** 2.6)
     reg += rng.integers(-4, 5, size=(h, w, 1)).astype(np.float32)
     # a bright rim exactly on the tip edge
-    rim = t > 0.90
-    reg[rim] = np.array(BLADE_EDGE, dtype=np.float32)
+    rim = t > 0.94
+    reg[rim] = np.array(BLADE_EDGE, dtype=np.float32) * 0.85
     cv.rgb[y:y + h, x:x + w] = reg
     cv.a[y:y + h, x:x + w] = 1.0
     if glow is not None:
@@ -406,7 +406,7 @@ def paint_blade(cv, glow, part, rects, face, rng):
         g[:] = np.array(CRACK_HOT, dtype=np.float32) * (t[..., None] ** 2.0) * 0.9
         glow.rgb[y:y + h, x:x + w] = g
         ga = glow.a[y:y + h, x:x + w]
-        ga[:] = np.clip(t ** 1.4, 0.0, 1.0)
+        ga[:] = np.clip(t ** 2.0, 0.0, 1.0) * 0.75
         glow.a[y:y + h, x:x + w] = ga
     cv.ao(rect, 0.45)
 
@@ -508,66 +508,87 @@ def paint_membrane(cv, glow, part, rects, face, rng):
 
 
 def paint_eye(cv, glow, part, rects, face, rng):
-    """A molten violet eye: hot core, darker rim, black vertical slit.
-
-    The darkest texel on the whole model is the socket around the iris, so the
-    glow has something to contrast against instead of washing into the cheek.
-    """
+    """A molten violet eye: lens-shaped iris, black socket, vertical slit pupil."""
     rect = rects[face]
     x, y, w, h = rect
     if w <= 0 or h <= 0:
         return
     yy, xx = np.mgrid[0:h, 0:w]
-    fy = (yy - (h - 1) / 2.0) / max(1.0, h / 2.0)
     fx = (xx - (w - 1) / 2.0) / max(1.0, w / 2.0)
-    r = np.sqrt(fx * fx * 0.92 + fy * fy * 1.08)
+    fy = (yy - (h - 1) / 2.0) / max(1.0, h / 2.0)
+    # an almond, not a disc: narrow at the corners, tall in the middle
+    lens = fx * fx + (fy / (0.92 - 0.35 * np.abs(fx))) ** 2
     hot = np.array(EYE_CORE, dtype=np.float32)
     mid = np.array(EYE_GLOW, dtype=np.float32)
-    rim = np.array(VOID, dtype=np.float32) * 0.62
+    rim = np.array(VOID, dtype=np.float32) * 0.55
     reg = np.empty((h, w, 3), dtype=np.float32)
-    reg[:] = (7, 3, 12)                      # socket: near black
-    m1 = r < 0.96
-    m2 = r < 0.70
-    m3 = r < 0.36
+    reg[:] = (9, 4, 14)
+    m1 = lens < 1.0
+    m2 = lens < 0.55
+    m3 = lens < 0.22
     reg[m1] = rim
     reg[m2] = mid
     reg[m3] = hot
-    slit = (np.abs(fx) < 0.20) & (r < 0.92)
-    reg[slit] = (10, 2, 18)
+    slit = (np.abs(fx) < 0.16) & m1
+    reg[slit] = (12, 3, 20)
+    # a bright spark in the upper corner of the iris
+    spark = ((fx + 0.28) ** 2 + (fy - 0.34) ** 2) < 0.045
+    reg[spark] = hot
     cv.rgb[y:y + h, x:x + w] = reg
     cv.a[y:y + h, x:x + w] = 1.0
     if glow is not None:
         g = np.zeros((h, w, 3), dtype=np.float32)
         ga = np.zeros((h, w), dtype=np.float32)
+        g[m1] = rim
         g[m2] = mid
         g[m3] = hot
-        ga[m2] = 0.85
+        ga[m1] = 0.45
+        ga[m2] = 0.90
         ga[m3] = 1.0
-        ga[m1] = 0.55
-        g[m1 & ~m2] = rim
+        ga[slit] = 0.0
+        g[slit] = 0.0
+        g[spark] = hot
+        ga[spark] = 1.0
         glow.rgb[y:y + h, x:x + w] = g
         glow.a[y:y + h, x:x + w] = ga
 
 
 def paint_wingbone(cv, glow, part, rects, face, rng):
-    """Dark leathery wing bones with a faint violet seam."""
+    """Wing bones: dark ash-grey bone, lighter along the ridge, with one thin
+    ember seam. The bones must stay dark or the whole wing turns into a glow slab."""
     rect = rects[face]
     f = FACE_TINT[face]
     x, y, w, h = rect
-    cv.fill(rect, MEMBRANE_DEEP, f * 0.9, noise=4)
-    cv.cracks(rect, glow, f, density=0.10, seed=hash(part["name"] + face) % 9999)
-    cv.ao(rect, 0.85)
+    if w <= 0 or h <= 0:
+        return
+    yy, xx = np.mgrid[0:h, 0:w]
+    # lighter along the length, darker at the cross-section edges
+    along = (xx if w >= h else yy) / max(1.0, (w if w >= h else h) - 1.0)
+    across = (yy if w >= h else xx) / max(1.0, (h if w >= h else w) - 1.0)
+    mid = np.exp(-((across - 0.5) / 0.34) ** 2)
+    dark = np.array((34, 28, 44), dtype=np.float32)
+    lit = np.array((96, 88, 112), dtype=np.float32)
+    reg = dark + (lit - dark) * (0.30 + 0.70 * mid)[..., None]
+    reg *= (0.80 + 0.20 * along)[..., None]
+    # bone rings every few texels
+    reg[(along * max(2.0, (w if w >= h else h) / 3.0) % 1.0) < 0.10] *= 0.86
+    reg += rng.integers(-5, 6, size=(h, w, 1)).astype(np.float32)
+    cv.rgb[y:y + h, x:x + w] = np.clip(reg * f, 0, 255)
+    cv.a[y:y + h, x:x + w] = 1.0
+    cv.ao(rect, 0.70)
     if glow is not None:
-        g = glow.rgb[y:y + h, x:x + w]
-        g[:] = np.array(shade(CRACK_HOT, f), dtype=np.float32) * 0.22
+        # a single hairline of ember down the middle, nothing more
+        g = np.zeros((h, w, 3), dtype=np.float32)
+        ga = np.zeros((h, w), dtype=np.float32)
+        seam = np.abs(across - 0.5) < 0.055
+        g[seam] = np.array(CRACK_HOT, dtype=np.float32)
+        ga[seam] = 0.55
         glow.rgb[y:y + h, x:x + w] = g
-        ga = glow.a[y:y + h, x:x + w]
-        ga[:] = np.maximum(ga, 0.34)
         glow.a[y:y + h, x:x + w] = ga
 
 
 def paint_horn(cv, glow, part, rects, face, rng):
-    """Pale bone horn: bright along its length, ringed, with a molten core at the root."""
+    """Pale bone horn: cool ivory with growth rings and a molten seam at the root."""
     rect = rects[face]
     f = FACE_TINT[face]
     x, y, w, h = rect
@@ -576,32 +597,42 @@ def paint_horn(cv, glow, part, rects, face, rng):
     yy, xx = np.mgrid[0:h, 0:w]
     # the horn's long axis is its Z depth, which lands on the wide side of the
     # unwrapped island, so pick the gradient axis from the island's aspect
-    if w >= h:
-        t = xx / max(1.0, w - 1.0)
-    else:
-        t = yy / max(1.0, h - 1.0)
-    shade_c = np.array(BONE_SHADE, dtype=np.float32)[None, None, :]
-    tip_c = np.array(BONE_TIP, dtype=np.float32)[None, None, :]
-    reg = shade_c + (tip_c - shade_c) * (t[..., None] ** 0.8)
+    long_ax = xx if w >= h else yy
+    across = yy if w >= h else xx
+    span = (w if w >= h else h)
+    t = long_ax / max(1.0, span - 1.0)
+    # cool ivory at the tip, warm shadow at the root -- never flat cream
+    root_c = np.array((120, 118, 130), dtype=np.float32)
+    mid_c = np.array(BONE_SHADE, dtype=np.float32)
+    tip_c = np.array(BONE_TIP, dtype=np.float32)
+    reg = np.empty((h, w, 3), dtype=np.float32)
+    t3 = t[..., None]
+    reg[:] = root_c + (mid_c - root_c) * np.clip(t3 * 3.0, 0, 1)
+    reg[:] = reg + (tip_c - reg) * np.clip((t3 - 0.35) / 0.65, 0, 1)
     # growth rings across the horn
-    ring = ((t * max(2.0, w / 2.0)) % 1.0) < 0.16
-    reg[ring] *= 0.72
-    # a violet seam at the root, fading out along the horn
-    seam = (t < 0.18) & (np.abs((yy if w >= h else xx) - (h if w >= h else w) / 2.0) < 1.6)
-    reg[seam] = np.array(BLADE_EDGE, dtype=np.float32) * 0.85
-    reg += rng.integers(-5, 6, size=(h, w, 1)).astype(np.float32)
+    ring = ((t * max(3.0, span / 3.0)) % 1.0) < 0.12
+    reg[ring] *= 0.82
+    # a shallow groove along the shaft, darker, so the cylinder reads as round
+    ctr = (h if w >= h else w) / 2.0
+    groove = np.exp(-((across - ctr) / max(1.2, ctr * 0.30)) ** 2)
+    reg *= (1.0 - 0.30 * groove[..., None])
+    # mottling so it looks grown, not moulded
+    reg += rng.integers(-6, 7, size=(h, w, 1)).astype(np.float32)
+    # molten seam at the root
+    seam = (t < 0.16) & (np.abs(across - ctr) < max(1.0, ctr * 0.35))
+    reg[seam] = np.array(BLADE_EDGE, dtype=np.float32) * 0.92
     cv.rgb[y:y + h, x:x + w] = np.clip(reg * f, 0, 255)
     cv.a[y:y + h, x:x + w] = 1.0
     if glow is not None:
         g = glow.rgb[y:y + h, x:x + w]
-        g[:] = np.array(CRACK_HOT, dtype=np.float32) * 0.12
-        g[seam] = np.array(CRACK_HOT, dtype=np.float32)
-        glow.rgb[y:y + h, x:x + w] = g
         ga = glow.a[y:y + h, x:x + w]
-        ga[:] = 0.18
-        ga[seam] = 1.0
+        g[:] = 0.0
+        ga[:] = 0.0
+        g[seam] = np.array(CRACK_HOT, dtype=np.float32)
+        ga[seam] = 0.85
+        glow.rgb[y:y + h, x:x + w] = g
         glow.a[y:y + h, x:x + w] = ga
-    cv.ao(rect, 0.55)
+    cv.ao(rect, 0.50)
 
 
 def paint_claw(cv, glow, part, rects, face, rng):
@@ -615,10 +646,28 @@ def paint_claw(cv, glow, part, rects, face, rng):
 
 
 def paint_tooth(cv, glow, part, rects, face, rng):
+    """Needle teeth: ivory at the point, dark and wet at the gum line."""
     rect = rects[face]
     f = FACE_TINT[face]
-    cv.fill(rect, BONE, f, noise=6)
-    cv.ao(rect, 0.7)
+    x, y, w, h = rect
+    if w <= 0 or h <= 0:
+        return
+    yy, xx = np.mgrid[0:h, 0:w]
+    # the teeth strip is drawn along the jaw, so the gum runs along the short axis
+    t = (yy if h >= w else xx) / max(1.0, (h if h >= w else w) - 1.0)
+    gum = np.array((46, 40, 54), dtype=np.float32)
+    body = np.array((192, 190, 196), dtype=np.float32)
+    tip = np.array(BONE_TIP, dtype=np.float32)
+    reg = gum + (body - gum) * np.clip(t[..., None] * 2.4, 0, 1)
+    reg = reg + (tip - reg) * np.clip((t[..., None] - 0.55) / 0.45, 0, 1)
+    # vertical tooth separations
+    reg[(xx % max(2.0, w / 6.0)) < 0.7] *= 0.55
+    reg += rng.integers(-5, 6, size=(h, w, 1)).astype(np.float32)
+    cv.rgb[y:y + h, x:x + w] = np.clip(reg * f, 0, 255)
+    cv.a[y:y + h, x:x + w] = 1.0
+    if glow is not None:
+        glow.a[y:y + h, x:x + w] = 0.0
+    cv.ao(rect, 0.60)
 
 
 def paint_skull(cv, glow, part, rects, face, rng):
@@ -644,24 +693,10 @@ def paint_skull(cv, glow, part, rects, face, rng):
     cv.rgb[y:y + h, x:x + w] = reg2
     cv.cracks(rect, glow, f, density=0.06, seed=hash(part["name"] + face) % 9999)
     cv.ao(rect, 0.78)
-    if face in ("left", "right", "front"):
-        # recessed eye socket, angled forward like a hunter's stare
-        socket_w = max(3, int(w * 0.34))
-        socket_h = max(2, int(h * 0.16))
-        sx = x + (int(w * 0.16) if face != "right" else int(w * 0.50))
-        sy = y + int(h * 0.40)
-        for iy in range(socket_h):
-            for ix in range(socket_w):
-                cv.rgb[sy + iy, sx + ix] = np.array((10, 6, 16), dtype=np.float32) * f
-        # brow shadow above the socket
-        cv.rgb[max(0, sy - 1), sx:sx + socket_w] *= 0.4
-        if glow is not None:
-            g = glow.rgb[sy:sy + socket_h, sx:sx + socket_w]
-            g[:] = np.array(VOID, dtype=np.float32) * 0.55
-            glow.rgb[sy:sy + socket_h, sx:sx + socket_w] = g
-            ga = glow.a[sy:sy + socket_h, sx:sx + socket_w]
-            ga[:] = 0.85
-            glow.a[sy:sy + socket_h, sx:sx + socket_w] = ga
+    # NOTE: do not paint eye sockets here. The eyes are separate geometry with
+    # their own emissive texture; painting a socket on the skull only produced a
+    # bright blob on the cheek that swallowed the real eye.
+    del yy, xx
 
 
 def paint_muzzle(cv, glow, part, rects, face, rng):

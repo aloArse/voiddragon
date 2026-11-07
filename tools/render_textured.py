@@ -83,20 +83,27 @@ def face_data(part, uv):
     z0, z1 = oz, oz + d
     mirror = part["mirror"]
 
+    # Box UV layout written out exactly as Minecraft lays it out:
+    #   row v..v+d      : top (u+d..u+d+w) | bottom (u+d+w..u+d+2w)
+    #   row v+d..v+d+h  : right (u..u+d) | front (u+d..u+d+w) | left | back
+    # The previous version had top/bottom swapped and a degenerate back face,
+    # which stretched a single texel column across whole faces.
     faces = {
-        # name: (corners in MC order, uv per corner in MC order)
         "front": ([(x0, y1, z0), (x1, y1, z0), (x1, y0, z0), (x0, y0, z0)],
                   [(u + d, v + d), (u + d + w, v + d), (u + d + w, v + d + h), (u + d, v + d + h)]),
+        # the back face is mirrored horizontally in the sheet
         "back": ([(x1, y1, z1), (x0, y1, z1), (x0, y0, z1), (x1, y0, z1)],
-                 [(u + d + w + d, v + d), (u + 2 * d + w, v + d), (u + d + w + d, v + d), (u + 2 * d + w, v + d)]),
-        "right": ([(x1, y1, z1), (x1, y1, z0), (x1, y0, z0), (x1, y0, z1)],
+                 [(u + d + w + d + w, v + d), (u + d + w + d, v + d),
+                  (u + d + w + d, v + d + h), (u + d + w + d + w, v + d + h)]),
+        "right": ([(x1, y1, z0), (x1, y1, z1), (x1, y0, z1), (x1, y0, z0)],
                   [(u, v + d), (u + d, v + d), (u + d, v + d + h), (u, v + d + h)]),
-        "left": ([(x0, y1, z0), (x0, y1, z1), (x0, y0, z1), (x0, y0, z0)],
-                 [(u + d + w, v + d), (u + d + w + d, v + d), (u + d + w + d, v + d + h), (u + d + w, v + d + h)]),
+        "left": ([(x0, y1, z1), (x0, y1, z0), (x0, y0, z0), (x0, y0, z1)],
+                 [(u + d + w, v + d), (u + d + w + d, v + d),
+                  (u + d + w + d, v + d + h), (u + d + w, v + d + h)]),
         "top": ([(x0, y0, z1), (x1, y0, z1), (x1, y0, z0), (x0, y0, z0)],
-                [(u + d + w, v), (u + d + w, v + d), (u + d, v + d), (u + d, v)]),
+                [(u + d, v), (u + d + w, v), (u + d + w, v + d), (u + d, v + d)]),
         "bottom": ([(x0, y1, z0), (x1, y1, z0), (x1, y1, z1), (x0, y1, z1)],
-                   [(u + d, v), (u + d + w, v), (u + d + w, v + d), (u + d, v + d)]),
+                   [(u + d + w, v), (u + d + w + w, v), (u + d + w + w, v + d), (u + d + w, v + d)]),
     }
     if mirror:
         out = {}
@@ -304,10 +311,23 @@ def render(yaw_deg, pitch_deg, width=1100, height=760, flying=False, gear=False,
             emit[r, c] = gl[:, :3] * gl[:, 3:4]
 
     if flat:
-        bg = np.array([0.09, 0.06, 0.13], dtype=np.float32)
+        bg = np.broadcast_to(np.array([0.09, 0.06, 0.13], dtype=np.float32), (H, W, 3))
     else:
-        bg = np.array([0.055, 0.035, 0.085], dtype=np.float32)
-    img = np.where(alpha[..., None], colour, bg[None, None, :])
+        # A violet nebula behind the dragon, like the reference art: without a
+        # lit backdrop a near-black dragon has nothing to silhouette against.
+        yy = np.linspace(0.0, 1.0, H, dtype=np.float32)[:, None, None]
+        deep = np.array([0.045, 0.020, 0.075], dtype=np.float32)
+        glowc = np.array([0.26, 0.12, 0.42], dtype=np.float32)
+        bg = deep + (glowc - deep) * np.clip(1.25 - yy * 1.55, 0, 1) ** 1.6
+        # a soft pool of light behind the body, and a faint starfield
+        gx = np.linspace(-1.0, 1.0, W, dtype=np.float32)[None, :, None]
+        gy = np.linspace(-1.0, 1.0, H, dtype=np.float32)[:, None, None]
+        radial = np.exp(-((gx * 0.85) ** 2 + (gy * 1.05) ** 2) * 1.5)
+        bg = bg + radial * np.array([0.20, 0.09, 0.34], dtype=np.float32)
+        stars = (np.random.default_rng(7).random((H, W)) > 0.9993)[..., None]
+        bg = bg + stars * 0.55
+        bg = np.broadcast_to(bg, (H, W, 3)).copy()
+    img = np.where(alpha[..., None], colour, bg)
     img = np.clip(img, 0, 1)
 
     im = Image.fromarray((img * 255).astype(np.uint8))
