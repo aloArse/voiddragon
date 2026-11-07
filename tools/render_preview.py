@@ -173,8 +173,8 @@ def render_view(yaw_deg, pitch_deg, size=(1000, 780), scale=9.0, distance=95.0,
     tex = Image.open(TEX).convert("RGBA")
     glow = Image.open(GLOW).convert("RGBA")
     uvmap = json.load(open(UVF))
-    parts = [p for p in PARTS if gear or p["name"] not in
-             (GEAR["saddle"] + GEAR["armor"])]
+    parts = [p for p in PARTS if (gear or p["name"] not in (GEAR["saddle"] + GEAR["armor"]))
+             and p["box"] is not None]
 
     # resolve part matrices
     by_name = {p["name"]: p for p in parts}

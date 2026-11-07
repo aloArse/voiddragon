@@ -302,6 +302,8 @@ def paint_part(canvas, glow, part, uv, armored=False):
     name = part["name"]
     painter = part["painter"]
     box = part["box"]
+    if box is None or painter == "pivot":
+        return
     w, h, d = int(box[3]), int(box[4]), int(box[5])
     u, v = uv[0], uv[1]
     rects = face_rects(u, v, w, h, d)
