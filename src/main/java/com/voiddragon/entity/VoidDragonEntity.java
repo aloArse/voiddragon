@@ -536,7 +536,7 @@ public class VoidDragonEntity extends TamableAnimal {
             stack.consume(1, player);
             this.setArmored(true);
             applyArmorBonus();
-            this.playSound(SoundEvents.ARMOR_EQUIP_NETHERITE, 1.2F, 0.6F);
+            this.playSound(SoundEvents.ARMOR_EQUIP_NETHERITE.value(), 1.2F, 0.6F);
             if (this.level() instanceof ServerLevel sl) {
                 sl.sendParticles(ParticleTypes.ENCHANT, getX(), getY() + this.getBbHeight() * 0.5D, getZ(),
                         30, 1.4D, 1.0D, 1.4D, 0.4D);
@@ -555,7 +555,7 @@ public class VoidDragonEntity extends TamableAnimal {
                 this.spawnAtLocation(ModItems.VOID_SADDLE.get());
             }
             applyArmorBonus();
-            this.playSound(SoundEvents.ARMOR_EQUIP_NETHERITE, 1.0F, 0.9F);
+            this.playSound(SoundEvents.ARMOR_EQUIP_NETHERITE.value(), 1.0F, 0.9F);
             return InteractionResult.sidedSuccess(false);
         }
 
@@ -703,7 +703,7 @@ public class VoidDragonEntity extends TamableAnimal {
                 Vec3 motion = this.getDeltaMovement().scale(0.90D);
                 motion = motion.add(look.scale(forward * accel)).add(left.scale(strafe * accel));
                 // Shift dives, jump climbs: vertical authority on top of the look vector.
-                if (rider.jumping) {
+                if (rider.isSprinting() && !rider.onGround() && rider.getDeltaMovement().y > 0.0D) {
                     motion = motion.add(0.0D, 0.07D, 0.0D);
                 } else if (rider.isShiftKeyDown()) {
                     motion = motion.add(0.0D, -0.09D, 0.0D);

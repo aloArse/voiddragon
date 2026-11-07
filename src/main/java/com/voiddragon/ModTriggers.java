@@ -1,9 +1,9 @@
 package com.voiddragon;
 
 import com.mojang.serialization.Codec;
-import net.minecraft.advancements.Criterion;
 import net.minecraft.advancements.critereon.ContextAwarePredicate;
 import net.minecraft.advancements.critereon.EntityPredicate;
+import net.minecraft.advancements.CriterionTrigger;
 import net.minecraft.advancements.critereon.SimpleCriterionTrigger;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerPlayer;
@@ -22,14 +22,14 @@ import java.util.Optional;
  */
 public class ModTriggers {
 
-    public static final DeferredRegister<SimpleCriterionTrigger<?>> TRIGGERS =
+    public static final DeferredRegister<CriterionTrigger<?>> TRIGGERS =
             DeferredRegister.create(Registries.TRIGGER_TYPE, VoidDragonMod.MODID);
 
-    public static final DeferredHolder<SimpleCriterionTrigger<?>, DragonTrigger> BOND_MAX =
+    public static final DeferredHolder<CriterionTrigger<?>, DragonTrigger> BOND_MAX =
             TRIGGERS.register("bond_max", DragonTrigger::new);
-    public static final DeferredHolder<SimpleCriterionTrigger<?>, DragonTrigger> DRAGON_GROWN =
+    public static final DeferredHolder<CriterionTrigger<?>, DragonTrigger> DRAGON_GROWN =
             TRIGGERS.register("dragon_grown", DragonTrigger::new);
-    public static final DeferredHolder<SimpleCriterionTrigger<?>, DragonTrigger> DRAGON_TAMED =
+    public static final DeferredHolder<CriterionTrigger<?>, DragonTrigger> DRAGON_TAMED =
             TRIGGERS.register("dragon_tamed", DragonTrigger::new);
 
     /** A trigger with no conditions — firing is enough to award it. */
@@ -52,11 +52,6 @@ public class ModTriggers {
             public Optional<ContextAwarePredicate> player() {
                 return this.player;
             }
-        }
-
-        /** Helper for datapack/JSON use. */
-        public static Criterion<Instance> criterion() {
-            return new Criterion<>(BOND_MAX.get(), new Instance(Optional.empty()));
         }
     }
 }
