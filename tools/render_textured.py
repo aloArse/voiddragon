@@ -124,10 +124,10 @@ def animated(parts, flying=False, gear=False, t=0.0, stage_scale=1.0):
         if flying:
             # wings sweep out to the sides and beat; legs tuck; tail streams back
             over = {
-                "wing_l": (0, 0, 0, -0.05 + flap * 0.10, 0.10, -0.10 + flap * 0.34),
-                "wing_r": (0, 0, 0, -0.05 + flap * 0.10, -0.10, 0.10 - flap * 0.34),
-                "wing_l_fore": (0, 0, 0, 0.0, 0.02, 0.06 + flap * 0.12),
-                "wing_r_fore": (0, 0, 0, 0.0, -0.02, -0.06 - flap * 0.12),
+                "wing_l": (0, 0, 0, -0.05 + flap * 0.10, 0.10, -0.10 + flap * 0.30),
+                "wing_r": (0, 0, 0, -0.05 + flap * 0.10, -0.10, 0.10 - flap * 0.30),
+                "wing_l_fore": (0, 0, 0, 0.0, 0.02, 0.06 + flap * 0.10),
+                "wing_r_fore": (0, 0, 0, 0.0, -0.02, -0.06 - flap * 0.10),
                 "leg_fl_thigh": (0, 0, 0, -0.34, 0, 0),
                 "leg_fr_thigh": (0, 0, 0, -0.34, 0, 0),
                 "leg_bl_thigh": (0, 0, 0, 0.28, 0, 0),
@@ -136,6 +136,13 @@ def animated(parts, flying=False, gear=False, t=0.0, stage_scale=1.0):
                 "tail3": (0, 0, 0, 0.06 + flap * 0.05, 0.09, 0),
                 "tail4": (0, 0, 0, 0.05 + flap * 0.05, 0.11, 0),
                 "tail5": (0, 0, 0, 0.05 + flap * 0.05, 0.12, 0),
+            }
+        else:
+            over = {
+                "wing_l": (0, 0, 0, -0.02, -0.34, 0.16),
+                "wing_r": (0, 0, 0, -0.02, 0.34, -0.16),
+                "wing_l_fore": (0, 0, 0, 0.0, -0.30, 0.24),
+                "wing_r_fore": (0, 0, 0, 0.0, 0.30, -0.24),
             }
         if name in over:
             o = over[name]
