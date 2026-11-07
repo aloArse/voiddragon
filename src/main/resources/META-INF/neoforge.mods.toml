@@ -1,0 +1,25 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "MIT"
+
+[[mods]]
+modId = "voiddragon"
+version = "1.0.0"
+displayName = "Void Dragon"
+description = '''
+A tameable, rideable Void dragon that commands shadow, darkness and the Void.
+'''
+
+[[dependencies.voiddragon]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1.0,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.voiddragon]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1,1.22)"
+ordering = "NONE"
+side = "BOTH"

@@ -1,0 +1,11 @@
+{
+  "itemGroup.voiddragon": "Void Dragon",
+  "item.voiddragon.void_shard": "Void Shard",
+  "item.voiddragon.void_dragon_spawn_egg": "Void Dragon Spawn Egg",
+  "entity.voiddragon.void_dragon": "Void Dragon",
+  "key.categories.voiddragon": "Void Dragon",
+  "key.voiddragon.breath": "Void Breath (hold)",
+  "key.voiddragon.rush": "Void Rush (dash)",
+  "key.voiddragon.flight": "Toggle Flight",
+  "key.voiddragon.roar": "Void Roar (collapse)"
+}

@@ -1,0 +1,81 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.141'
+}
+
+version = '1.0.0'
+group = 'com.voiddragon'
+
+base {
+    archivesName = 'voiddragon'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    // NeoForge 21.1.x == Minecraft 1.21.1
+    version = '21.1.235'
+
+    // Raise an error instead of silently ignoring a broken access transformer.
+    validateAccessTransformers = true
+
+    runs {
+        client {
+            client()
+            gameDirectory = file('run')
+        }
+        server {
+            server()
+            programArguments.addAll '--nogui'
+        }
+        data {
+            data()
+            programArguments.addAll '--mod', 'voiddragon', '--all',
+                    '--output', file('src/generated/resources/').getAbsolutePath(),
+                    '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+    }
+
+    mods {
+        voiddragon {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+}
+
+// Expand version placeholders in neoforge.mods.toml so the jar always reports the right metadata.
+tasks.withType(ProcessResources).configureEach {
+    def props = [
+            mod_version            : project.version,
+            minecraft_version      : '1.21.1',
+            minecraft_version_range: '[1.21.1,1.21.2)',
+            neo_version            : '21.1.235',
+            neo_version_range      : '[21.1.0,)',
+            loader_version_range   : '[4,)'
+    ]
+    inputs.properties props
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand props
+    }
+}
+
+jar {
+    manifest {
+        attributes([
+                'Specification-Title'     : 'Void Dragon',
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : 'voiddragon',
+                'Implementation-Version'  : project.version,
+                'Implementation-Vendor'   : 'voiddragon'
+        ])
+    }
+}

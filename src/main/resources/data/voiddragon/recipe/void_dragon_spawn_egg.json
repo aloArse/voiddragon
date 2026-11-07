@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "SSS",
+    "SES",
+    "SSS"
+  ],
+  "key": {
+    "S": { "item": "voiddragon:void_shard" },
+    "E": { "item": "minecraft:dragon_egg" }
+  },
+  "result": {
+    "id": "voiddragon:void_dragon_spawn_egg",
+    "count": 1
+  }
+}
