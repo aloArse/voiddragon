@@ -21,6 +21,12 @@ public class ClientGameEvents {
         if (player == null || mc.screen != null || !(player.getVehicle() instanceof VoidDragonEntity)) {
             return;
         }
+        // Climb is a channel too: hold it to flap upwards. Only sent while
+        // airborne, so the same key can stay bound to jump on the ground.
+        if (ClientModEvents.ASCEND.isDown() && player.tickCount % 3 == 0
+                && player.getVehicle() instanceof VoidDragonEntity dragon && dragon.isFlying()) {
+            PacketDistributor.sendToServer(new AbilityPayload(VoidDragonEntity.ABILITY_ASCEND));
+        }
         // Breath is a channel: fire while the key is held (throttled to 4x a second).
         if (ClientModEvents.BREATH.isDown() && player.tickCount % 5 == 0) {
             PacketDistributor.sendToServer(new AbilityPayload(0));

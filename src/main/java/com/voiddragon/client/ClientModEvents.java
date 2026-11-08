@@ -17,6 +17,8 @@ public class ClientModEvents {
     public static final KeyMapping BREATH = new KeyMapping("key.voiddragon.breath", GLFW.GLFW_KEY_R, CATEGORY);
     public static final KeyMapping RUSH = new KeyMapping("key.voiddragon.rush", GLFW.GLFW_KEY_G, CATEGORY);
     public static final KeyMapping FLIGHT = new KeyMapping("key.voiddragon.flight", GLFW.GLFW_KEY_X, CATEGORY);
+    /** Hold while airborne to flap upwards; the touch-friendly way to gain height. */
+    public static final KeyMapping ASCEND = new KeyMapping("key.voiddragon.ascend", GLFW.GLFW_KEY_SPACE, CATEGORY);
     public static final KeyMapping ROAR = new KeyMapping("key.voiddragon.roar", GLFW.GLFW_KEY_V, CATEGORY);
     public static final KeyMapping PORTAL = new KeyMapping("key.voiddragon.portal", GLFW.GLFW_KEY_C, CATEGORY);
     public static final KeyMapping STORM = new KeyMapping("key.voiddragon.storm", GLFW.GLFW_KEY_B, CATEGORY);
@@ -29,6 +31,7 @@ public class ClientModEvents {
         event.register(BREATH);
         event.register(RUSH);
         event.register(FLIGHT);
+        event.register(ASCEND);
         event.register(ROAR);
         event.register(PORTAL);
         event.register(STORM);

@@ -57,13 +57,29 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
     /** Wing finger count; the rig builds one membrane panel per gap between them. */
     private static final int FINGERS = 5;
 
+    /**
+     * How tightly the finger fan closes while the dragon is on the ground.
+     * 1.0 keeps the full flight fan; 0.0 stacks every finger on one line. The
+     * authored fan is the open one, so a grounded dragon furls its wings into a
+     * bundle along the flank instead of standing two slabs up over its back.
+     * Keep in step with WING_FOLD in tools/dragon_spec.py.
+     */
+    private static final float WING_FOLD = 0.45F;
+    /** Furled yaws: the open fan collapsed towards its own mean. */
+    private final float[] fingerFoldedY = new float[FINGERS];
+    private final float[] membraneFoldedY = new float[FINGERS + 1];
+
     private final ModelPart wingLHand, wingRHand;
     /** First phalanx of each of the five wing fingers, both sides. */
     private final ModelPart[] wingLFingers = new ModelPart[FINGERS];
     private final ModelPart[] wingRFingers = new ModelPart[FINGERS];
+    /** Authored (open) yaw of each finger; the fan lerps back to these in flight. */
+    private final float[] fingerRestY = new float[FINGERS];
     /** One membrane panel per gap between fingers, plus cove and trailing sail. */
     private final ModelPart[] wingLMembrane = new ModelPart[FINGERS + 1];
     private final ModelPart[] wingRMembrane = new ModelPart[FINGERS + 1];
+    /** Authored (open) yaw of each membrane panel. */
+    private final float[] membraneRestY = new float[FINGERS + 1];
     private final float wingRestZRot, wingRestYRot, wingRestXRot;
     private final float foreRestZRot, foreRestXRot, foreRestYRot;
 
@@ -79,7 +95,9 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
     public VoidDragonModel(ModelPart root) {
         super(RenderType::entityCutoutNoCull);
         this.root = root;
-        this.body = root.getChild("body");
+        // Everything hangs from the "rig" part that cancels Minecraft's model-space
+        // flip (see DragonRig), so the body is one level down from the baked root.
+        this.body = root.getChild(DragonRig.RIG).getChild("body");
         this.bodyRestX = body.x;
         this.bodyRestY = body.y;
         this.bodyRestZ = body.z;
@@ -120,11 +138,14 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         for (int i = 0; i < FINGERS; i++) {
             this.wingLFingers[i] = wingLHand.getChild("wing_l_f" + (i + 1) + "a");
             this.wingRFingers[i] = wingRHand.getChild("wing_r_f" + (i + 1) + "a");
+            this.fingerRestY[i] = this.wingLFingers[i].yRot;
         }
         for (int i = 0; i < FINGERS + 1; i++) {
             this.wingLMembrane[i] = wingLHand.getChild("wing_l_m" + (i + 1));
             this.wingRMembrane[i] = wingRHand.getChild("wing_r_m" + (i + 1));
+            this.membraneRestY[i] = this.wingLMembrane[i].yRot;
         }
+        computeFoldedFan();
 
 
         String[] sides = {"fl", "fr", "bl", "br"};
@@ -259,6 +280,28 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         }
     }
 
+    /**
+     * Collapses the open fan towards its own mean yaw. Folding towards the mean
+     * (rather than towards zero) keeps the bundle pointing the same way the open
+     * wing does, so the wing does not swing sideways as it closes. The membrane
+     * panels track the average of the two fingers they hang between.
+     */
+    private void computeFoldedFan() {
+        float mean = 0.0F;
+        for (int i = 0; i < FINGERS; i++) {
+            mean += fingerRestY[i];
+        }
+        mean /= FINGERS;
+        for (int i = 0; i < FINGERS; i++) {
+            fingerFoldedY[i] = mean + (fingerRestY[i] - mean) * WING_FOLD;
+        }
+        for (int i = 0; i < FINGERS - 1; i++) {
+            membraneFoldedY[i] = (fingerFoldedY[i] + fingerFoldedY[i + 1]) * 0.5F;
+        }
+        membraneFoldedY[FINGERS - 1] = fingerFoldedY[0] + 0.52F * WING_FOLD;
+        membraneFoldedY[FINGERS] = fingerFoldedY[FINGERS - 1] - 0.50F * WING_FOLD;
+    }
+
     private void animateFoldedWings(float fly, float breathe, float mouth, float limbSwing, float limbSwingAmount) {
         // Wings fold up over the back like a bat's umbrella, tucked against the spine.
         float unfurl = mouth * 0.30F;                       // a roar flares them a little
@@ -278,8 +321,14 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         wingRFore.yRot = -wingLFore.yRot;
         wingRFore.zRot = -wingLFore.zRot;
 
+        for (int i = 0; i < FINGERS; i++) {
+            wingLFingers[i].yRot = fingerFoldedY[i];
+            wingRFingers[i].yRot = -fingerFoldedY[i];
+        }
         for (int i = 0; i < FINGERS + 1; i++) {
+            wingLMembrane[i].yRot = membraneFoldedY[i];
             wingLMembrane[i].zRot = 0.0F;
+            wingRMembrane[i].yRot = -membraneFoldedY[i];
             wingRMembrane[i].zRot = 0.0F;
         }
     }
@@ -299,9 +348,11 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         // each finger lags a little more than the one before it, so the fan
         // opens like cloth being shaken out rather than moving as one plate
         for (int i = 0; i < FINGERS; i++) {
+            wingLFingers[i].yRot = Mth.lerp(fly, fingerFoldedY[i], fingerRestY[i]);
             wingLFingers[i].zRot = -0.04F * i + flapLag * 0.09F * (1.0F - i * 0.12F);
         }
         for (int i = 0; i < FINGERS + 1; i++) {
+            wingLMembrane[i].yRot = Mth.lerp(fly, membraneFoldedY[i], membraneRestY[i]);
             wingLMembrane[i].zRot = flapLag * 0.05F * (i + 1);
         }
 
@@ -312,9 +363,11 @@ public class VoidDragonModel extends EntityModel<VoidDragonEntity> {
         wingRFore.zRot = -wingLFore.zRot;
         wingRFore.yRot = -wingLFore.yRot;
         for (int i = 0; i < FINGERS; i++) {
+            wingRFingers[i].yRot = -wingLFingers[i].yRot;
             wingRFingers[i].zRot = -wingLFingers[i].zRot;
         }
         for (int i = 0; i < FINGERS + 1; i++) {
+            wingRMembrane[i].yRot = -wingLMembrane[i].yRot;
             wingRMembrane[i].zRot = -wingLMembrane[i].zRot;
         }
     }

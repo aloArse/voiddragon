@@ -18,7 +18,7 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from dragon_spec import PARTS, GEAR, TEXTURE_SIZE  # noqa: E402
+from dragon_spec import PARTS, GEAR, TEXTURE_SIZE, folded_yaws  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(ROOT, "src/main/resources/assets/voiddragon/textures")
@@ -146,10 +146,19 @@ def animated(parts, flying=False, gear=False, t=0.0, stage_scale=1.0):
                 "tail5": (0, 0, 0, 0.05 + flap * 0.05, 0.12, 0),
             }
         else:
+            # Furled: the finger fan closes towards its mean so the wing becomes
+            # a bundle lying along the flank instead of a vertical slab. The game
+            # does exactly the same in VoidDragonModel.animateFoldedWings().
             over = {}
+            for _side, _sgn in (("l", 1.0), ("r", -1.0)):
+                for _suf, _ang in folded_yaws().items():
+                    over[f"wing_{_side}_{_suf}"] = (0, 0, 0, None, _sgn * _ang, None)
         if name in over:
             o = over[name]
-            if flying:
+            if o[3] is None:
+                # absolute yRot only (furled fan)
+                pose = [pose[0], pose[1], pose[2], pose[3], o[4], pose[5]]
+            elif flying:
                 # flight pose is authored as absolute joint angles
                 pose = [pose[0], pose[1], pose[2], o[3], o[4], o[5]]
             else:

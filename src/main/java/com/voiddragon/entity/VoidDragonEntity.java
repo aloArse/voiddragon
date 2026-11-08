@@ -164,6 +164,11 @@ public class VoidDragonEntity extends TamableAnimal {
     private int stormCooldown;
     private int dashTicks;
     private int flyTicks;
+    /** Ticks left of "the rider is holding climb"; refreshed by the key payload. */
+    private int ascendHold;
+    /** Ticks of launch assist after take-off, so a standing start gets airborne. */
+    private int launchTicks;
+    private static final int ASCEND_HOLD_TICKS = 6;
     private int bondTimer;
     private boolean growthStatsApplied;
     private int followTeleportCooldown;
@@ -555,15 +560,18 @@ public class VoidDragonEntity extends TamableAnimal {
     // ---------------------------------------------------------------- size & hitbox
 
     /**
-     * The model is authored with the feet exactly on y=0 and it is 3.05 blocks
-     * tall / 3.88 blocks wide between the shoulders, so a hitbox derived from the
-     * same numbers can never leave the body sunk into the ground or let the wings
-     * poke through walls.
+     * The model is authored with the feet exactly on y=0, 3.37 blocks tall to the
+     * horn tips and 3.03 blocks wide across the furled wings, so a hitbox derived
+     * from the same numbers can never leave the body sunk into the ground or let
+     * the wings poke through walls. (Run tools/measure.py to re-check these after
+     * any geometry edit.)
      */
-    public static final float MODEL_HEIGHT = 3.05F;
-    public static final float MODEL_WIDTH = 3.10F;
+    public static final float MODEL_HEIGHT = 3.30F;
+    public static final float MODEL_WIDTH = 3.06F;
     /** The authored model is a bit longer than it is wide (snout and tail). */
-    public static final float MODEL_LENGTH = 5.20F;
+    public static final float MODEL_LENGTH = 7.80F;
+    /** Top of the saddle in blocks at scale 1.0 -- where the rider's feet go. */
+    public static final float SADDLE_TOP = 2.24F;
 
     /** Synced data does not exist yet while the entity is still being constructed. */
     private boolean dataReady() {
@@ -585,7 +593,7 @@ public class VoidDragonEntity extends TamableAnimal {
 
     /** Height of the saddle, in blocks, above the dragon's feet. */
     public float getSeatHeight() {
-        return MODEL_HEIGHT * 0.62F * getDragonScale();
+        return SADDLE_TOP * getDragonScale();
     }
 
     /** How far the rider sits behind the shoulder pivot, in blocks. */
@@ -922,20 +930,31 @@ public class VoidDragonEntity extends TamableAnimal {
                 double yawRad = Math.toRadians(this.getYRot());
                 Vec3 left = new Vec3(Math.cos(yawRad), 0.0D, Math.sin(yawRad));
                 boolean sprinting = rider.isSprinting();
-                double accel = sprinting ? 0.085D : 0.06D;
-                double maxSpeed = sprinting ? 3.1D : 2.3D;
+                // Bigger dragons have more wing to push with: a hatchling pokes
+                // along, a Dragon God covers ground. Kept modest so the speed is
+                // still steerable with a thumb on a phone screen.
+                double size = 0.70D + 0.30D * Math.min(2.5D, getDragonScale());
+                double accel = (sprinting ? 0.075D : 0.050D) * size;
+                double maxSpeed = (sprinting ? 1.90D : 1.05D) * size;
 
                 Vec3 motion = this.getDeltaMovement().scale(0.90D);
                 motion = motion.add(look.scale(forward * accel)).add(left.scale(strafe * accel));
-                // Shift dives, jump climbs: vertical authority on top of the look vector.
-                if (rider.isSprinting() && !rider.onGround() && rider.getDeltaMovement().y > 0.0D) {
-                    motion = motion.add(0.0D, 0.07D, 0.0D);
-                } else if (rider.isShiftKeyDown()) {
-                    motion = motion.add(0.0D, -0.09D, 0.0D);
+                // Vertical authority: the look vector already carries pitch, the
+                // climb key adds a flap on top of it and shift always means "down".
+                if (this.ascendHold > 0) {
+                    motion = motion.add(0.0D, 0.115D * size, 0.0D);
                 }
-                if (forward == 0.0F && strafe == 0.0F) {
-                    // Hover: gently bob in place instead of falling out of the sky.
-                    motion = motion.scale(0.90D).add(0.0D, Math.sin(this.tickCount * 0.12D) * 0.004D, 0.0D);
+                if (this.launchTicks > 0) {
+                    motion = motion.add(0.0D, 0.075D * size, 0.0D);
+                }
+                if (rider.isShiftKeyDown()) {
+                    motion = motion.add(0.0D, -0.115D * size, 0.0D);
+                }
+                if (forward == 0.0F && strafe == 0.0F && this.ascendHold <= 0 && this.launchTicks <= 0
+                        && !rider.isShiftKeyDown()) {
+                    // Hover: settle in place instead of falling out of the sky.
+                    motion = motion.scale(0.86D);
+                    motion = new Vec3(motion.x, motion.y * 0.80D + Math.sin(this.tickCount * 0.11D) * 0.006D, motion.z);
                 }
                 if (motion.lengthSqr() > maxSpeed * maxSpeed) {
                     motion = motion.normalize().scale(maxSpeed);
@@ -974,6 +993,7 @@ public class VoidDragonEntity extends TamableAnimal {
             case ABILITY_ROAR -> requireTier(rider, tier, 3, () -> roar(rider));
             case ABILITY_PORTAL -> requireTier(rider, tier, 4, () -> voidStep(rider));
             case ABILITY_GODSTORM -> requireTier(rider, tier, 4, () -> voidStorm(rider));
+            case ABILITY_ASCEND -> this.ascendHold = ASCEND_HOLD_TICKS;
             case ABILITY_SIZE_UP -> nudgeSize(0.05F);
             case ABILITY_SIZE_DOWN -> nudgeSize(-0.05F);
             case ABILITY_SIZE_AUTO -> resetSize();
@@ -989,6 +1009,8 @@ public class VoidDragonEntity extends TamableAnimal {
     public static final int ABILITY_ROAR = 3;
     public static final int ABILITY_PORTAL = 4;
     public static final int ABILITY_GODSTORM = 5;
+    /** Held while flying: flap upwards. 6 so it cannot collide with the sizes. */
+    public static final int ABILITY_ASCEND = 6;
     /** Requests to change the manual size come in on the same channel. */
     public static final int ABILITY_SIZE_UP = 8;
     public static final int ABILITY_SIZE_DOWN = 9;
@@ -1086,7 +1108,10 @@ public class VoidDragonEntity extends TamableAnimal {
         }
         this.setFlying(true);
         this.flyTicks = 0;
-        this.setDeltaMovement(this.getDeltaMovement().add(0.0D, 0.75D, 0.0D));
+        // A standing start needs a couple of seconds of extra lift before the
+        // rider has had time to point the nose up and build speed.
+        this.launchTicks = 40;
+        this.setDeltaMovement(this.getDeltaMovement().add(0.0D, 0.85D, 0.0D));
         this.hurtMarked = true;
         this.playSound(SoundEvents.ENDER_DRAGON_GROWL, 2.5F, 0.8F);
         if (this.level() instanceof ServerLevel sl) {
@@ -1410,6 +1435,8 @@ public class VoidDragonEntity extends TamableAnimal {
             this.growthStatsApplied = true;
             applyGrowthAttributes();
         }
+        if (this.ascendHold > 0) this.ascendHold--;
+        if (this.launchTicks > 0) this.launchTicks--;
         if (this.breathCooldown > 0) this.breathCooldown--;
         if (this.dashCooldown > 0) this.dashCooldown--;
         if (this.roarCooldown > 0) this.roarCooldown--;
@@ -1427,8 +1454,9 @@ public class VoidDragonEntity extends TamableAnimal {
         // ---- Flight bookkeeping
         if (this.isFlying()) {
             this.flyTicks++;
-            if (!this.isVehicle() || this.onGround() && this.flyTicks > 30) {
+            if (!this.isVehicle() || (this.onGround() && this.flyTicks > 8)) {
                 this.setFlying(false);
+                this.playSound(SoundEvents.ENDER_DRAGON_FLAP, 1.4F, 0.6F);
             }
             if (this.flyTicks % 12 == 0) {
                 this.playSound(SoundEvents.ENDER_DRAGON_FLAP, 1.2F, 0.8F + this.random.nextFloat() * 0.2F);
