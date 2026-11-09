@@ -1,0 +1,28 @@
+{
+  "parent": "voiddragon:saddle",
+  "display": {
+    "icon": {
+      "id": "minecraft:ender_eye"
+    },
+    "title": {
+      "translate": "advancement.voiddragon.bond.title"
+    },
+    "description": {
+      "translate": "advancement.voiddragon.bond.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "full_bond": {
+      "trigger": "voiddragon:bond_max"
+    }
+  },
+  "requirements": [
+    [
+      "full_bond"
+    ]
+  ]
+}

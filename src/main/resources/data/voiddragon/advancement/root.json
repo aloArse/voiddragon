@@ -1,0 +1,38 @@
+{
+  "parent": null,
+  "display": {
+    "icon": {
+      "id": "voiddragon:void_shard"
+    },
+    "title": {
+      "translate": "advancement.voiddragon.root.title"
+    },
+    "description": {
+      "translate": "advancement.voiddragon.root.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "has_item": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "voiddragon:void_shard"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_item"
+    ]
+  ],
+  "background": "minecraft:textures/block/obsidian.png"
+}

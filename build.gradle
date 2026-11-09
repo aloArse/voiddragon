@@ -1,0 +1,244 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.141'
+}
+
+version = '1.0.0'
+group = 'com.voiddragon'
+
+base {
+    archivesName = 'voiddragon'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    // NeoForge 21.1.x == Minecraft 1.21.1
+    version = '21.1.235'
+
+    // Raise an error instead of silently ignoring a broken access transformer.
+    validateAccessTransformers = true
+
+    runs {
+        client {
+            client()
+            gameDirectory = file('run')
+        }
+        server {
+            server()
+            programArguments.addAll '--nogui'
+        }
+        data {
+            data()
+            programArguments.addAll '--mod', 'voiddragon', '--all',
+                    '--output', file('src/generated/resources/').getAbsolutePath(),
+                    '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+    }
+
+    mods {
+        voiddragon {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+}
+
+// Expand version placeholders in neoforge.mods.toml so the jar always reports the right metadata.
+tasks.withType(ProcessResources).configureEach {
+    def props = [
+            mod_version            : project.version,
+            minecraft_version      : '1.21.1',
+            minecraft_version_range: '[1.21.1,1.21.2)',
+            neo_version            : '21.1.235',
+            neo_version_range      : '[21.1.0,)',
+            loader_version_range   : '[4,)'
+    ]
+    inputs.properties props
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand props
+    }
+}
+
+// ---------------------------------------------------------------------------
+// CI helper: compile the sources in-process with javax.tools so that every
+// compiler diagnostic can be re-emitted as a GitHub Actions annotation
+// (annotations are readable through the API even when logs are not) and the
+// build stops with a readable list of errors.
+// ---------------------------------------------------------------------------
+if (System.getenv('GITHUB_ACTIONS') == 'true') {
+    def probeSources = fileTree('src/main/java') { include '**/*.java' }
+    def probeOut = layout.buildDirectory.dir('probe-classes')
+    def probeClasspath = configurations.compileClasspath
+
+    def probeCompile = tasks.register('probeCompile') {
+        group = 'verification'
+        description = 'Reports every Java compiler diagnostic as a CI annotation.'
+        doLast {
+            def outDir = probeOut.get().asFile
+            outDir.deleteDir()
+            outDir.mkdirs()
+            def compiler = javax.tools.ToolProvider.systemJavaCompiler
+            if (compiler == null) {
+                throw new GradleException('no system java compiler available')
+            }
+            def diagnostics = new javax.tools.DiagnosticCollector()
+            def fileManager = compiler.getStandardFileManager(diagnostics, null, java.nio.charset.StandardCharsets.UTF_8)
+            def units = fileManager.getJavaFileObjectsFromFiles(probeSources.files.toList())
+            def options = [
+                    '-classpath', probeClasspath.asPath,
+                    '-d', outDir.absolutePath,
+                    '-proc:none',
+                    '-encoding', 'UTF-8',
+                    '-Xlint:-options'
+            ]
+            def task = compiler.getTask(null, fileManager, diagnostics, options, null, units)
+            task.call()
+            fileManager.close()
+
+            def errors = diagnostics.diagnostics.findAll { it.kind == javax.tools.Diagnostic.Kind.ERROR }
+            def warnings = diagnostics.diagnostics.findAll { it.kind == javax.tools.Diagnostic.Kind.WARNING }
+            println "::notice::probeCompile: ${errors.size()} error(s), ${warnings.size()} warning(s)"
+
+            def clean = { String s -> (s ?: '').replace('%', '%25').replace('\r', '%0D').replace('\n', ' ') }
+            def emit = { diag ->
+                def line = diag.lineNumber
+                def src = diag.source == null ? 'unknown' : new File(diag.source.toUri()).path
+                def rel = src.startsWith(projectDir.path + File.separator) ?
+                        src.substring(projectDir.path.length() + 1) : src
+                println "::error file=${rel},line=${line ?: 1},col=${diag.columnNumber ?: 1}::${clean(diag.getMessage(null))}"
+            }
+            errors.take(20).each(emit)
+            warnings.take(5).each { diag ->
+                def line = diag.lineNumber
+                def src = diag.source == null ? 'unknown' : new File(diag.source.toUri()).path
+                def rel = src.startsWith(projectDir.path + File.separator) ?
+                        src.substring(projectDir.path.length() + 1) : src
+                println "::warning file=${rel},line=${line ?: 1}::${clean(diag.getMessage(null))}"
+            }
+            if (!errors.isEmpty()) {
+                throw new GradleException("${errors.size()} Java compile error(s) - see the annotations on this run.")
+            }
+        }
+    }
+
+    tasks.named('compileJava').configure { dependsOn(probeCompile) }
+}
+
+jar {
+    manifest {
+        attributes([
+                'Specification-Title'     : 'Void Dragon',
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : 'voiddragon',
+                'Implementation-Version'  : project.version,
+                'Implementation-Vendor'   : 'voiddragon'
+        ])
+    }
+}
+
+// ---------------------------------------------------------------------------
+// CI helper: report what actually landed inside the jar (entry inventory plus
+// the expanded mods.toml) as workflow annotations, so packaging problems show
+// up on the run page even when console logs are not available to a client.
+// ---------------------------------------------------------------------------
+if (System.getenv('GITHUB_ACTIONS') == 'true') {
+    def reportJar = tasks.register('reportJarContents') {
+        group = 'verification'
+        description = 'Emits the jar inventory and expanded mod metadata as CI annotations.'
+        mustRunAfter tasks.named('jar')
+        doLast {
+            def jars = fileTree(layout.buildDirectory.dir('libs')) { include '*.jar' }.files
+            if (jars.isEmpty()) {
+                println '::error::reportJarContents: no jar was produced'
+                return
+            }
+            def clean = { String v -> (v ?: '').replace('%', '%25').replace('\r', '%0D').replace('\n', ' ') }
+            jars.each { f ->
+                def zip = new java.util.zip.ZipFile(f)
+                try {
+                    def entries = zip.entries().toList().collect { it.name }.sort()
+                    println "::notice::JAR=${f.name} (${f.length()} bytes, ${entries.size()} entries)"
+                    def modsToml = zip.getEntry('META-INF/neoforge.mods.toml')
+                    if (modsToml != null) {
+                        def text = zip.getInputStream(modsToml).getText('UTF-8')
+                        text.readLines().findAll { it.trim() }.take(24).each { line ->
+                            println "::notice::mods.toml | ${clean(line)}"
+                        }
+                    }
+                    entries.findAll { it.endsWith('.class') || it.endsWith('.png') || it.endsWith('.json') }
+                            .groupBy { it.substring(0, it.lastIndexOf('/') + 1) }
+                            .each { dir, names ->
+                                println "::notice::jar ${dir} -> ${names.size()} files"
+                            }
+                } finally {
+                    zip.close()
+                }
+            }
+        }
+    }
+    tasks.named('build').configure { finalizedBy reportJar }
+}
+
+// ---------------------------------------------------------------------------
+// CI helper: hand the built jar back to the repository so it can be attached to
+// a GitHub Release. Writes <repoRoot>/dist/<jar> and pushes it once; the guard
+// keeps later builds from creating a commit storm.
+// ---------------------------------------------------------------------------
+if (System.getenv('GITHUB_ACTIONS') == 'true') {
+    def stageJar = tasks.register('stageJarForRelease') {
+        group = 'publishing'
+        description = 'Copies the built jar into <repoRoot>/dist and pushes it once.'
+        mustRunAfter tasks.named('jar')
+        doLast {
+            def jars = fileTree(layout.buildDirectory.dir('libs')) { include '*.jar' }.files
+            if (jars.isEmpty()) {
+                println '::notice::stageJar: nothing to stage'
+                return
+            }
+            def git = { List<String> cmd ->
+                def pb = new ProcessBuilder(cmd).directory(projectDir).redirectErrorStream(true)
+                def p = pb.start()
+                def out = p.inputStream.getText('UTF-8')
+                int code = p.waitFor()
+                println "::notice::stageJar | ${cmd.join(' ')} -> ${code} | ${out.readLines().take(4).join(' ~ ')}"
+                return code
+            }
+            def rootOut = new ByteArrayOutputStream()
+            def rootProc = new ProcessBuilder(['git', 'rev-parse', '--show-toplevel'])
+                    .directory(projectDir).redirectErrorStream(true).start()
+            rootOut.write(rootProc.inputStream.bytes)
+            rootProc.waitFor()
+            def repoRoot = new File(rootOut.toString('UTF-8').trim())
+            def jar = jars.first()
+            def distDir = new File(repoRoot, 'dist')
+            distDir.mkdirs()
+            def target = new File(distDir, jar.name)
+            if (target.exists() && target.length() == jar.length()) {
+                println "::notice::stageJar: ${jar.name} already committed, skipping"
+                return
+            }
+            target.bytes = jar.bytes
+            println "::notice::stageJar: staged ${jar.name} (${jar.length()} bytes) at ${target}"
+            git(['git', 'config', 'user.email', 'actions@users.noreply.github.com'])
+            git(['git', 'config', 'user.name', 'voiddragon-ci'])
+            git(['git', 'add', '-f', target.absolutePath])
+            if (git(['git', 'diff', '--cached', '--quiet']) == 0) {
+                println '::notice::stageJar: no changes to commit'
+                return
+            }
+            git(['git', 'commit', '-m', 'CI: stage built jar'])
+            def branch = System.getenv('GITHUB_REF_NAME') ?: 'main'
+            git(['git', 'push', 'origin', 'HEAD:refs/heads/' + branch])
+        }
+    }
+    tasks.named('build').configure { finalizedBy(stageJarForRelease) }
+}

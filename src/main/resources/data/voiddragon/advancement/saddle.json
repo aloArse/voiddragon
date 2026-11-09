@@ -1,0 +1,37 @@
+{
+  "parent": "voiddragon:tame",
+  "display": {
+    "icon": {
+      "id": "voiddragon:void_saddle"
+    },
+    "title": {
+      "translate": "advancement.voiddragon.saddle.title"
+    },
+    "description": {
+      "translate": "advancement.voiddragon.saddle.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "has_item": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "voiddragon:void_saddle"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_item"
+    ]
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "parent": "voiddragon:root",
+  "display": {
+    "icon": {
+      "id": "voiddragon:void_dragon_spawn_egg"
+    },
+    "title": {
+      "translate": "advancement.voiddragon.tame.title"
+    },
+    "description": {
+      "translate": "advancement.voiddragon.tame.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "tame_dragon": {
+      "trigger": "voiddragon:dragon_tamed"
+    }
+  },
+  "requirements": [
+    [
+      "tame_dragon"
+    ]
+  ]
+}

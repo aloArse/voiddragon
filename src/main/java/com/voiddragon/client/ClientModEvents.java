@@ -1,0 +1,52 @@
+package com.voiddragon.client;
+
+import com.voiddragon.ModEntities;
+import com.voiddragon.VoidDragonMod;
+import net.minecraft.client.KeyMapping;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import org.lwjgl.glfw.GLFW;
+
+@EventBusSubscriber(modid = VoidDragonMod.MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+public class ClientModEvents {
+    private static final String CATEGORY = "key.categories.voiddragon";
+
+    public static final KeyMapping BREATH = new KeyMapping("key.voiddragon.breath", GLFW.GLFW_KEY_R, CATEGORY);
+    public static final KeyMapping RUSH = new KeyMapping("key.voiddragon.rush", GLFW.GLFW_KEY_G, CATEGORY);
+    public static final KeyMapping FLIGHT = new KeyMapping("key.voiddragon.flight", GLFW.GLFW_KEY_X, CATEGORY);
+    /** Hold while airborne to flap upwards; the touch-friendly way to gain height. */
+    public static final KeyMapping ASCEND = new KeyMapping("key.voiddragon.ascend", GLFW.GLFW_KEY_SPACE, CATEGORY);
+    public static final KeyMapping ROAR = new KeyMapping("key.voiddragon.roar", GLFW.GLFW_KEY_V, CATEGORY);
+    public static final KeyMapping PORTAL = new KeyMapping("key.voiddragon.portal", GLFW.GLFW_KEY_C, CATEGORY);
+    public static final KeyMapping STORM = new KeyMapping("key.voiddragon.storm", GLFW.GLFW_KEY_B, CATEGORY);
+    public static final KeyMapping SIZE_UP = new KeyMapping("key.voiddragon.size_up", GLFW.GLFW_KEY_RIGHT_BRACKET, CATEGORY);
+    public static final KeyMapping SIZE_DOWN = new KeyMapping("key.voiddragon.size_down", GLFW.GLFW_KEY_LEFT_BRACKET, CATEGORY);
+    public static final KeyMapping SIZE_AUTO = new KeyMapping("key.voiddragon.size_auto", GLFW.GLFW_KEY_BACKSLASH, CATEGORY);
+
+    @SubscribeEvent
+    public static void registerKeys(RegisterKeyMappingsEvent event) {
+        event.register(BREATH);
+        event.register(RUSH);
+        event.register(FLIGHT);
+        event.register(ASCEND);
+        event.register(ROAR);
+        event.register(PORTAL);
+        event.register(STORM);
+        event.register(SIZE_UP);
+        event.register(SIZE_DOWN);
+        event.register(SIZE_AUTO);
+    }
+
+    @SubscribeEvent
+    public static void registerLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {
+        event.registerLayerDefinition(VoidDragonModel.LAYER, VoidDragonModel::createBodyLayer);
+    }
+
+    @SubscribeEvent
+    public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerEntityRenderer(ModEntities.VOID_DRAGON.get(), VoidDragonRenderer::new);
+    }
+}

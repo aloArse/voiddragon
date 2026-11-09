@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "SOS",
+    "ONO",
+    "SOS"
+  ],
+  "key": {
+    "S": { "item": "voiddragon:void_shard" },
+    "O": { "item": "minecraft:obsidian" },
+    "N": { "item": "minecraft:netherite_ingot" }
+  },
+  "result": {
+    "id": "voiddragon:void_armor",
+    "count": 1
+  }
+}

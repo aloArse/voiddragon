@@ -1,0 +1,38 @@
+modLoader = "javafml"
+loaderVersion = "${loader_version_range}"
+license = "MIT"
+issueTrackerURL = "https://github.com/aloArse/voiddragon/issues"
+
+[[mods]]
+modId = "voiddragon"
+version = "${mod_version}"
+displayName = "Void Dragon"
+displayTest = "MATCH_VERSION"
+logoFile = "logo.png"
+authors = "aloArse"
+description = '''
+A complete dragon experience for NeoForge: tame a Void Dragon with Void Shards,
+raise a hatchling into an adult, saddle it, armour it and ride it into the sky.
+
+- Void Breath: a channelled beam of shadow that withers and darkens what it touches
+- Void Rush: a ramming dash that shreds anything in the flight path
+- True Flight: pitch-and-climb flying with hover, dive and sprint dive-bombing
+- Void Roar: a 20-block collapse that drags enemies in and drowns them in darkness
+- Void Step: a short-range portal blink straight through terrain
+- Fully custom animated model, glowing void eyes and runes, saddle and armour layers
+- English and Persian localisation plus a compact in-game rider HUD with live cooldowns
+'''
+
+[[dependencies.voiddragon]]
+modId = "neoforge"
+type = "required"
+versionRange = "${neo_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.voiddragon]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"

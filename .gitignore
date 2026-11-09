@@ -1,0 +1,26 @@
+# Gradle / build output
+.gradle/
+build/
+out/
+run/
+run-data/
+logs/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+bin/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local scratch
+/tmp/
+*.log
+
+tools/__pycache__/
