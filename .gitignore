@@ -24,3 +24,6 @@ Thumbs.db
 *.log
 
 tools/__pycache__/
+
+# Preview scratch renders (tools/render_*.py). The curated ones live in docs/.
+preview/*.png
