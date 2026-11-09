@@ -59,8 +59,8 @@ BLADE_EDGE = (232, 108, 44)
 
 # Wing membrane: the signature of the reference dragon -- deep oxblood leather,
 # lit warmer towards the root, with dark bone fingers running through it.
-MEMBRANE_DEEP = (46, 12, 14)
-MEMBRANE_MID = (104, 28, 26)
+MEMBRANE_DEEP = (54, 10, 14)
+MEMBRANE_MID = (128, 26, 28)
 MEMBRANE_VEIN = (146, 54, 44)
 
 # Bone: warm ivory. The only light material, which is what sells the horns.
@@ -484,7 +484,7 @@ def paint_membrane(cv, glow, part, rects, face, rng):
         rx, ry = rng.uniform(w * 0.10, w * 0.40) + 1.0, rng.uniform(h * 0.16, h * 0.55) + 1.0
         blob = np.exp(-(((xx - cxp) / rx) ** 2 + ((yy - cyp) / ry) ** 2))
         noise += blob * rng.uniform(-0.12, 0.16)
-    sheet *= (1.0 + noise)[..., None]
+    sheet *= (1.0 + noise * 0.7)[..., None]
     sheet *= f
 
     # dark bone ribs fanning out of the wrist, with a lit rim on one side
