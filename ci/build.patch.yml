@@ -1,0 +1,26 @@
+      # ---- Everything below pushes the built jar back into this branch, so the
+      # mod can be downloaded straight from github.com (no login, no artifacts
+      # page, no release). Tools/CI can rewrite this file freely; keeping the
+      # workflow file itself untouched avoids the GitHub App workflow permission.
+      - name: Publish jar into dist/
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          JAR=$(ls src_build/voiddragon/build/libs/*.jar | head -1)
+          echo "built $JAR ($(stat -c%s "$JAR") bytes)"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gh unzip zip
+          git config user.email "actions@users.noreply.github.com"
+          git config user.name "voiddragon-ci"
+          mkdir -p dist
+          cp "$JAR" dist/
+          rm -f voiddragon-mod.zip
+          (cd dist && zip -q -9 ../voiddragon-mod.zip *.jar)
+          git add -f dist voiddragon-mod.zip
+          if git diff --cached --quiet; then
+            echo "dist/ already up to date"
+            exit 0
+          fi
+          git commit -m "CI: publish $JAR"
+          git push origin "HEAD:${{ github.ref_name }}"
