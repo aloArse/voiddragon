@@ -320,8 +320,10 @@ def _tail_parts():
         out.append(P(f"tail{i}", parent, (*pivot, xr, 0.0, 0.0),
                      (-w / 2, -w / 2, -1.6, w, w, length + 1.6), "hide", anim=True))
         if i <= 6:
-            out.append(P(f"tail{i}_spike", f"tail{i}", (0.0, w / 2 + 0.1, 2.2, 0.25, 0.0, 0.0),
-                         (-0.7, -0.3, -3.0, 1.4, 4.0, 6.6), "blade"))
+            # low, thin dorsal fins: the tail should read as a tapered whip, not
+            # as a row of boxes riding on top of the segments
+            out.append(P(f"tail{i}_spike", f"tail{i}", (0.0, w / 2 - 0.2, 2.0, 0.55, 0.0, 0.0),
+                         (-0.5, 0.0, -2.4, 1.0, max(1.6, 3.6 - i * 0.42), 1.6), "blade"))
         parent = f"tail{i}"
     # spade tip: a cross shaped blade, the classic dragon tail fin
     out.append(P("spade_top", "tail7", (0.0, -0.2, 5.6, -0.32, 0.0, 0.0),

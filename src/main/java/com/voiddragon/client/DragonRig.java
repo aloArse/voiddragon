@@ -61,7 +61,7 @@ public final class DragonRig {
                         .addBox(-4.4F, -0.9F, -3.5F, 8.8F, 1.8F, 7.1F),
                 PartPose.offset(0.0F, -6.4F, -3.7F));
         PartDefinition neck1Spine = neck1.addOrReplaceChild("neck1_spine",
-                CubeListBuilder.create().texOffs(512, 170)
+                CubeListBuilder.create().texOffs(410, 170)
                         .addBox(-0.6F, 0.0F, -2.2F, 1.1F, 4.2F, 1.8F),
                 PartPose.offsetAndRotation(0.0F, 6.0F, -3.7F, 0.60F, 0.00F, 0.00F));
         PartDefinition neck2 = neck1.addOrReplaceChild("neck2",
@@ -73,7 +73,7 @@ public final class DragonRig {
                         .addBox(-3.8F, -0.9F, -3.2F, 7.6F, 1.8F, 6.5F),
                 PartPose.offset(0.0F, -5.5F, -3.4F));
         PartDefinition neck2Spine = neck2.addOrReplaceChild("neck2_spine",
-                CubeListBuilder.create().texOffs(519, 170)
+                CubeListBuilder.create().texOffs(417, 170)
                         .addBox(-0.6F, 0.0F, -2.2F, 1.1F, 4.2F, 1.8F),
                 PartPose.offsetAndRotation(0.0F, 5.1F, -3.4F, 0.60F, 0.00F, 0.00F));
         PartDefinition neck3 = neck2.addOrReplaceChild("neck3",
@@ -85,7 +85,7 @@ public final class DragonRig {
                         .addBox(-3.3F, -0.9F, -2.9F, 6.5F, 1.8F, 5.9F),
                 PartPose.offset(0.0F, -4.7F, -3.1F));
         PartDefinition neck3Spine = neck3.addOrReplaceChild("neck3_spine",
-                CubeListBuilder.create().texOffs(526, 170)
+                CubeListBuilder.create().texOffs(424, 170)
                         .addBox(-0.6F, 0.0F, -2.2F, 1.1F, 4.2F, 1.8F),
                 PartPose.offsetAndRotation(0.0F, 4.3F, -3.1F, 0.60F, 0.00F, 0.00F));
         PartDefinition head = neck3.addOrReplaceChild("head",
@@ -109,7 +109,7 @@ public final class DragonRig {
                         .addBox(-2.8F, -2.1F, -5.4F, 5.6F, 3.8F, 5.6F),
                 PartPose.offsetAndRotation(0.0F, -0.1F, -6.0F, -0.05F, 0.00F, 0.00F));
         PartDefinition nose = muzzle3.addOrReplaceChild("nose",
-                CubeListBuilder.create().texOffs(381, 170)
+                CubeListBuilder.create().texOffs(279, 170)
                         .addBox(-2.2F, -1.2F, -1.2F, 4.4F, 2.4F, 1.6F),
                 PartPose.offsetAndRotation(0.0F, 0.5F, -5.0F, 0.10F, 0.00F, 0.00F));
         PartDefinition jaw = head.addOrReplaceChild("jaw",
@@ -117,11 +117,11 @@ public final class DragonRig {
                         .addBox(-3.3F, -2.0F, -17.4F, 6.6F, 2.3F, 17.4F),
                 PartPose.offsetAndRotation(0.0F, -4.0F, -0.6F, 0.08F, 0.00F, 0.00F));
         PartDefinition jawChin = jaw.addOrReplaceChild("jaw_chin",
-                CubeListBuilder.create().texOffs(308, 170)
+                CubeListBuilder.create().texOffs(206, 170)
                         .addBox(-2.0F, -1.2F, -2.0F, 4.0F, 1.4F, 2.2F),
                 PartPose.offsetAndRotation(0.0F, 0.1F, -16.4F, 0.10F, 0.00F, 0.00F));
         PartDefinition jawHingeL = head.addOrReplaceChild("jaw_hinge_l",
-                CubeListBuilder.create().texOffs(271, 170)
+                CubeListBuilder.create().texOffs(169, 170)
                         .addBox(-1.2F, -2.0F, -2.6F, 1.4F, 4.0F, 5.6F),
                 PartPose.offset(4.0F, -2.6F, -1.2F));
         PartDefinition browL = head.addOrReplaceChild("brow_l",
@@ -133,27 +133,27 @@ public final class DragonRig {
                         .addBox(-1.1F, -0.7F, -4.4F, 2.2F, 1.4F, 6.6F),
                 PartPose.offsetAndRotation(-4.3F, 1.6F, -3.2F, 0.00F, 0.08F, 0.22F));
         PartDefinition eyeL = head.addOrReplaceChild("eye_l",
-                CubeListBuilder.create().texOffs(675, 170)
+                CubeListBuilder.create().texOffs(587, 170)
                         .addBox(-0.2F, -0.8F, -2.0F, 0.6F, 1.7F, 4.0F),
                 PartPose.offset(4.9F, 0.3F, -3.4F));
         PartDefinition eyeR = head.addOrReplaceChild("eye_r",
-                CubeListBuilder.create().texOffs(686, 170).mirror()
+                CubeListBuilder.create().texOffs(598, 170).mirror()
                         .addBox(-0.4F, -0.8F, -2.0F, 0.6F, 1.7F, 4.0F),
                 PartPose.offset(-4.9F, 0.3F, -3.4F));
         PartDefinition cheekL = head.addOrReplaceChild("cheek_l",
-                CubeListBuilder.create().texOffs(580, 170)
+                CubeListBuilder.create().texOffs(478, 170)
                         .addBox(-0.5F, -0.5F, 0.0F, 0.9F, 0.9F, 4.6F),
                 PartPose.offsetAndRotation(4.7F, -1.6F, 4.6F, 0.00F, 0.00F, -0.35F));
         PartDefinition cheekR = head.addOrReplaceChild("cheek_r",
-                CubeListBuilder.create().texOffs(593, 170).mirror()
+                CubeListBuilder.create().texOffs(491, 170).mirror()
                         .addBox(-0.5F, -0.5F, 0.0F, 0.9F, 0.9F, 4.6F),
                 PartPose.offsetAndRotation(-4.7F, -1.6F, 4.6F, 0.00F, -0.00F, 0.35F));
         PartDefinition cheekL2 = head.addOrReplaceChild("cheek_l2",
-                CubeListBuilder.create().texOffs(751, 170)
+                CubeListBuilder.create().texOffs(670, 170)
                         .addBox(-0.4F, -0.4F, 0.0F, 0.8F, 0.8F, 3.8F),
                 PartPose.offsetAndRotation(4.2F, -2.9F, 5.2F, 0.00F, 0.00F, -0.70F));
         PartDefinition cheekR2 = head.addOrReplaceChild("cheek_r2",
-                CubeListBuilder.create().texOffs(762, 170).mirror()
+                CubeListBuilder.create().texOffs(681, 170).mirror()
                         .addBox(-0.4F, -0.4F, 0.0F, 0.8F, 0.8F, 3.8F),
                 PartPose.offsetAndRotation(-4.2F, -2.9F, 5.2F, 0.00F, -0.00F, 0.70F));
         PartDefinition cheekPlateL = head.addOrReplaceChild("cheek_plate_l",
@@ -165,27 +165,27 @@ public final class DragonRig {
                         .addBox(-0.5F, -2.2F, -2.0F, 1.6F, 4.0F, 6.4F),
                 PartPose.offset(-4.5F, -1.2F, -1.0F));
         PartDefinition nostrilL = nose.addOrReplaceChild("nostril_l",
-                CubeListBuilder.create().texOffs(833, 170)
+                CubeListBuilder.create().texOffs(773, 170)
                         .addBox(-0.2F, -0.4F, -0.5F, 0.5F, 0.8F, 1.2F),
                 PartPose.offset(1.5F, 1.2F, -0.4F));
         PartDefinition nostrilR = nose.addOrReplaceChild("nostril_r",
-                CubeListBuilder.create().texOffs(838, 170).mirror()
+                CubeListBuilder.create().texOffs(778, 170).mirror()
                         .addBox(-0.2F, -0.4F, -0.5F, 0.5F, 0.8F, 1.2F),
                 PartPose.offset(-1.5F, 1.2F, -0.4F));
         PartDefinition teethL = muzzle2.addOrReplaceChild("teeth_l",
-                CubeListBuilder.create().texOffs(460, 170)
+                CubeListBuilder.create().texOffs(358, 170)
                         .addBox(-0.3F, -1.8F, -0.9F, 0.6F, 1.8F, 7.6F),
                 PartPose.offset(2.9F, -2.2F, -5.4F));
         PartDefinition teethR = muzzle2.addOrReplaceChild("teeth_r",
-                CubeListBuilder.create().texOffs(479, 170).mirror()
+                CubeListBuilder.create().texOffs(377, 170).mirror()
                         .addBox(-0.3F, -1.8F, -0.9F, 0.6F, 1.8F, 7.6F),
                 PartPose.offset(-2.9F, -2.2F, -5.4F));
         PartDefinition jawTeethL = jaw.addOrReplaceChild("jaw_teeth_l",
-                CubeListBuilder.create().texOffs(415, 170)
+                CubeListBuilder.create().texOffs(313, 170)
                         .addBox(-0.3F, -1.5F, -0.8F, 0.6F, 1.5F, 8.4F),
                 PartPose.offset(2.6F, 2.0F, -6.0F));
         PartDefinition jawTeethR = jaw.addOrReplaceChild("jaw_teeth_r",
-                CubeListBuilder.create().texOffs(434, 170).mirror()
+                CubeListBuilder.create().texOffs(332, 170).mirror()
                         .addBox(-0.3F, -1.5F, -0.8F, 0.6F, 1.5F, 8.4F),
                 PartPose.offset(-2.6F, 2.0F, -6.0F));
         PartDefinition hornL1 = head.addOrReplaceChild("horn_l1",
@@ -205,11 +205,11 @@ public final class DragonRig {
                         .addBox(-0.9F, -0.9F, 0.0F, 1.8F, 1.8F, 7.6F),
                 PartPose.offsetAndRotation(-0.0F, 0.4F, 9.0F, -0.34F, -0.00F, -0.00F));
         PartDefinition hornL3 = head.addOrReplaceChild("horn_l3",
-                CubeListBuilder.create().texOffs(533, 170)
+                CubeListBuilder.create().texOffs(431, 170)
                         .addBox(-0.6F, -0.6F, 0.0F, 1.1F, 1.1F, 4.6F),
                 PartPose.offsetAndRotation(4.1F, 1.8F, 2.6F, -0.18F, 0.62F, 0.00F));
         PartDefinition hornR3 = head.addOrReplaceChild("horn_r3",
-                CubeListBuilder.create().texOffs(546, 170).mirror()
+                CubeListBuilder.create().texOffs(444, 170).mirror()
                         .addBox(-0.6F, -0.6F, 0.0F, 1.1F, 1.1F, 4.6F),
                 PartPose.offsetAndRotation(-4.1F, 1.8F, 2.6F, -0.18F, -0.62F, -0.00F));
         PartDefinition bellyChest = body.addOrReplaceChild("belly_chest",
@@ -229,59 +229,59 @@ public final class DragonRig {
                         .addBox(-5.6F, -10.0F, -2.0F, 11.2F, 2.0F, 11.8F),
                 PartPose.offsetAndRotation(0.0F, -0.6F, 16.4F, -0.08F, 0.00F, 0.00F));
         PartDefinition ridge0 = body.addOrReplaceChild("ridge_0",
-                CubeListBuilder.create().texOffs(573, 170)
+                CubeListBuilder.create().texOffs(471, 170)
                         .addBox(-0.6F, 0.0F, -3.0F, 1.1F, 3.2F, 1.8F),
                 PartPose.offsetAndRotation(0.0F, 7.6F, -12.4F, 0.34F, 0.00F, 0.00F));
         PartDefinition ridge1 = body.addOrReplaceChild("ridge_1",
-                CubeListBuilder.create().texOffs(559, 170)
+                CubeListBuilder.create().texOffs(457, 170)
                         .addBox(-0.6F, 0.0F, -3.0F, 1.1F, 4.0F, 1.8F),
                 PartPose.offsetAndRotation(0.0F, 7.6F, -9.0F, 0.30F, 0.00F, 0.00F));
         PartDefinition ridge2 = body.addOrReplaceChild("ridge_2",
-                CubeListBuilder.create().texOffs(408, 170)
+                CubeListBuilder.create().texOffs(306, 170)
                         .addBox(-0.6F, 0.0F, -3.0F, 1.1F, 4.8F, 1.8F),
                 PartPose.offsetAndRotation(0.0F, 7.6F, -5.4F, 0.26F, 0.00F, 0.00F));
         PartDefinition ridge3 = body.addOrReplaceChild("ridge_3",
-                CubeListBuilder.create().texOffs(394, 170)
+                CubeListBuilder.create().texOffs(292, 170)
                         .addBox(-0.6F, 0.0F, -3.0F, 1.1F, 5.4F, 1.8F),
                 PartPose.offsetAndRotation(0.0F, 7.6F, -1.6F, 0.20F, 0.00F, 0.00F));
         PartDefinition ridge4 = body.addOrReplaceChild("ridge_4",
-                CubeListBuilder.create().texOffs(401, 170)
+                CubeListBuilder.create().texOffs(299, 170)
                         .addBox(-0.6F, 0.0F, -3.0F, 1.1F, 5.0F, 1.8F),
                 PartPose.offsetAndRotation(0.0F, 7.6F, 2.6F, 0.16F, 0.00F, 0.00F));
         PartDefinition ridge5 = body.addOrReplaceChild("ridge_5",
-                CubeListBuilder.create().texOffs(453, 170)
+                CubeListBuilder.create().texOffs(351, 170)
                         .addBox(-0.6F, 0.0F, -3.0F, 1.1F, 4.4F, 1.8F),
                 PartPose.offsetAndRotation(0.0F, 7.6F, 6.8F, 0.14F, 0.00F, 0.00F));
         PartDefinition ridge6 = body.addOrReplaceChild("ridge_6",
-                CubeListBuilder.create().texOffs(566, 170)
+                CubeListBuilder.create().texOffs(464, 170)
                         .addBox(-0.6F, 0.0F, -3.0F, 1.1F, 3.6F, 1.8F),
                 PartPose.offsetAndRotation(0.0F, 7.3F, 11.0F, 0.10F, 0.00F, 0.00F));
         PartDefinition ridge7 = body.addOrReplaceChild("ridge_7",
-                CubeListBuilder.create().texOffs(606, 170)
+                CubeListBuilder.create().texOffs(504, 170)
                         .addBox(-0.6F, 0.0F, -3.0F, 1.1F, 3.0F, 1.8F),
                 PartPose.offsetAndRotation(0.0F, 7.3F, 15.0F, 0.06F, 0.00F, 0.00F));
         PartDefinition ridgeSideL = chest.addOrReplaceChild("ridge_side_l",
-                CubeListBuilder.create().texOffs(498, 170)
+                CubeListBuilder.create().texOffs(396, 170)
                         .addBox(-0.7F, 0.0F, -2.0F, 1.4F, 3.4F, 2.0F),
                 PartPose.offsetAndRotation(6.4F, 6.0F, -1.0F, 0.00F, 0.00F, -0.75F));
         PartDefinition ridgeSideR = chest.addOrReplaceChild("ridge_side_r",
-                CubeListBuilder.create().texOffs(505, 170).mirror()
+                CubeListBuilder.create().texOffs(403, 170).mirror()
                         .addBox(-0.7F, 0.0F, -2.0F, 1.4F, 3.4F, 2.0F),
                 PartPose.offsetAndRotation(-6.4F, 6.0F, -1.0F, 0.00F, -0.00F, 0.75F));
         PartDefinition scapulaL = chest.addOrReplaceChild("scapula_l",
-                CubeListBuilder.create().texOffs(286, 170)
+                CubeListBuilder.create().texOffs(184, 170)
                         .addBox(-1.1F, 0.0F, -2.6F, 2.3F, 5.8F, 2.6F),
                 PartPose.offsetAndRotation(7.8F, 5.4F, -0.8F, 0.00F, 0.00F, -0.50F));
         PartDefinition scapulaR = chest.addOrReplaceChild("scapula_r",
-                CubeListBuilder.create().texOffs(297, 170).mirror()
+                CubeListBuilder.create().texOffs(195, 170).mirror()
                         .addBox(-1.1F, 0.0F, -2.6F, 2.3F, 5.8F, 2.6F),
                 PartPose.offsetAndRotation(-7.8F, 5.4F, -0.8F, 0.00F, -0.00F, 0.50F));
         PartDefinition hipSpurL = hips.addOrReplaceChild("hip_spur_l",
-                CubeListBuilder.create().texOffs(359, 170)
+                CubeListBuilder.create().texOffs(257, 170)
                         .addBox(-0.8F, 0.0F, -2.4F, 1.7F, 5.4F, 2.6F),
                 PartPose.offsetAndRotation(8.0F, 4.4F, 2.6F, 0.00F, 0.00F, -0.95F));
         PartDefinition hipSpurR = hips.addOrReplaceChild("hip_spur_r",
-                CubeListBuilder.create().texOffs(370, 170).mirror()
+                CubeListBuilder.create().texOffs(268, 170).mirror()
                         .addBox(-0.8F, 0.0F, -2.4F, 1.7F, 5.4F, 2.6F),
                 PartPose.offsetAndRotation(-8.0F, 4.4F, 2.6F, 0.00F, -0.00F, 0.95F));
         PartDefinition legFlThigh = body.addOrReplaceChild("leg_fl_thigh",
@@ -325,35 +325,35 @@ public final class DragonRig {
                         .addBox(-3.0F, -1.8F, -4.6F, 6.0F, 3.6F, 7.4F),
                 PartPose.offsetAndRotation(-0.0F, -9.4F, -0.2F, 0.22F, -0.00F, -0.00F));
         PartDefinition legFlTalon1 = legFlFoot.addOrReplaceChild("leg_fl_talon1",
-                CubeListBuilder.create().texOffs(791, 170)
+                CubeListBuilder.create().texOffs(717, 170)
                         .addBox(-0.5F, -1.0F, -1.8F, 1.0F, 1.1F, 2.4F),
                 PartPose.offsetAndRotation(1.9F, -1.4F, -3.8F, 0.55F, 0.00F, 0.00F));
         PartDefinition legFrTalon1 = legFrFoot.addOrReplaceChild("leg_fr_talon1",
-                CubeListBuilder.create().texOffs(798, 170).mirror()
+                CubeListBuilder.create().texOffs(724, 170).mirror()
                         .addBox(-0.5F, -1.0F, -1.8F, 1.0F, 1.1F, 2.4F),
                 PartPose.offsetAndRotation(-1.9F, -1.4F, -3.8F, 0.55F, -0.00F, -0.00F));
         PartDefinition legFlTalon2 = legFlFoot.addOrReplaceChild("leg_fl_talon2",
-                CubeListBuilder.create().texOffs(805, 170)
+                CubeListBuilder.create().texOffs(731, 170)
                         .addBox(-0.5F, -1.0F, -1.8F, 1.0F, 1.1F, 2.4F),
                 PartPose.offsetAndRotation(0.0F, -1.4F, -3.8F, 0.55F, 0.00F, 0.00F));
         PartDefinition legFrTalon2 = legFrFoot.addOrReplaceChild("leg_fr_talon2",
-                CubeListBuilder.create().texOffs(812, 170).mirror()
+                CubeListBuilder.create().texOffs(738, 170).mirror()
                         .addBox(-0.5F, -1.0F, -1.8F, 1.0F, 1.1F, 2.4F),
                 PartPose.offsetAndRotation(-0.0F, -1.4F, -3.8F, 0.55F, -0.00F, -0.00F));
         PartDefinition legFlTalon3 = legFlFoot.addOrReplaceChild("leg_fl_talon3",
-                CubeListBuilder.create().texOffs(819, 170)
+                CubeListBuilder.create().texOffs(745, 170)
                         .addBox(-0.5F, -1.0F, -1.8F, 1.0F, 1.1F, 2.4F),
                 PartPose.offsetAndRotation(-1.9F, -1.4F, -3.8F, 0.55F, 0.00F, 0.00F));
         PartDefinition legFrTalon3 = legFrFoot.addOrReplaceChild("leg_fr_talon3",
-                CubeListBuilder.create().texOffs(826, 170).mirror()
+                CubeListBuilder.create().texOffs(752, 170).mirror()
                         .addBox(-0.5F, -1.0F, -1.8F, 1.0F, 1.1F, 2.4F),
                 PartPose.offsetAndRotation(1.9F, -1.4F, -3.8F, 0.55F, -0.00F, -0.00F));
         PartDefinition legFlHeel = legFlFoot.addOrReplaceChild("leg_fl_heel",
-                CubeListBuilder.create().texOffs(773, 170)
+                CubeListBuilder.create().texOffs(692, 170)
                         .addBox(-0.5F, -0.5F, 0.0F, 1.0F, 1.0F, 2.6F),
                 PartPose.offsetAndRotation(0.0F, -0.9F, 3.2F, -0.55F, 0.00F, 0.00F));
         PartDefinition legFrHeel = legFrFoot.addOrReplaceChild("leg_fr_heel",
-                CubeListBuilder.create().texOffs(782, 170).mirror()
+                CubeListBuilder.create().texOffs(701, 170).mirror()
                         .addBox(-0.5F, -0.5F, 0.0F, 1.0F, 1.0F, 2.6F),
                 PartPose.offsetAndRotation(-0.0F, -0.9F, 3.2F, -0.55F, -0.00F, -0.00F));
         PartDefinition legBlThigh = body.addOrReplaceChild("leg_bl_thigh",
@@ -397,35 +397,35 @@ public final class DragonRig {
                         .addBox(-3.8F, -2.0F, -5.6F, 7.6F, 3.8F, 8.8F),
                 PartPose.offsetAndRotation(-0.0F, -10.0F, -0.4F, -0.32F, -0.00F, -0.00F));
         PartDefinition legBlTalon1 = legBlFoot.addOrReplaceChild("leg_bl_talon1",
-                CubeListBuilder.create().texOffs(697, 170)
+                CubeListBuilder.create().texOffs(609, 170)
                         .addBox(-0.5F, -1.1F, -2.0F, 1.1F, 1.2F, 2.6F),
                 PartPose.offsetAndRotation(2.0F, -1.5F, -4.4F, 0.55F, 0.00F, 0.00F));
         PartDefinition legBrTalon1 = legBrFoot.addOrReplaceChild("leg_br_talon1",
-                CubeListBuilder.create().texOffs(706, 170).mirror()
+                CubeListBuilder.create().texOffs(618, 170).mirror()
                         .addBox(-0.5F, -1.1F, -2.0F, 1.1F, 1.2F, 2.6F),
                 PartPose.offsetAndRotation(-2.0F, -1.5F, -4.4F, 0.55F, -0.00F, -0.00F));
         PartDefinition legBlTalon2 = legBlFoot.addOrReplaceChild("leg_bl_talon2",
-                CubeListBuilder.create().texOffs(715, 170)
+                CubeListBuilder.create().texOffs(627, 170)
                         .addBox(-0.5F, -1.1F, -2.0F, 1.1F, 1.2F, 2.6F),
                 PartPose.offsetAndRotation(0.0F, -1.5F, -4.4F, 0.55F, 0.00F, 0.00F));
         PartDefinition legBrTalon2 = legBrFoot.addOrReplaceChild("leg_br_talon2",
-                CubeListBuilder.create().texOffs(724, 170).mirror()
+                CubeListBuilder.create().texOffs(636, 170).mirror()
                         .addBox(-0.5F, -1.1F, -2.0F, 1.1F, 1.2F, 2.6F),
                 PartPose.offsetAndRotation(-0.0F, -1.5F, -4.4F, 0.55F, -0.00F, -0.00F));
         PartDefinition legBlTalon3 = legBlFoot.addOrReplaceChild("leg_bl_talon3",
-                CubeListBuilder.create().texOffs(733, 170)
+                CubeListBuilder.create().texOffs(645, 170)
                         .addBox(-0.5F, -1.1F, -2.0F, 1.1F, 1.2F, 2.6F),
                 PartPose.offsetAndRotation(-2.0F, -1.5F, -4.4F, 0.55F, 0.00F, 0.00F));
         PartDefinition legBrTalon3 = legBrFoot.addOrReplaceChild("leg_br_talon3",
-                CubeListBuilder.create().texOffs(742, 170).mirror()
+                CubeListBuilder.create().texOffs(654, 170).mirror()
                         .addBox(-0.5F, -1.1F, -2.0F, 1.1F, 1.2F, 2.6F),
                 PartPose.offsetAndRotation(2.0F, -1.5F, -4.4F, 0.55F, -0.00F, -0.00F));
         PartDefinition legBlHeel = legBlFoot.addOrReplaceChild("leg_bl_heel",
-                CubeListBuilder.create().texOffs(657, 170)
+                CubeListBuilder.create().texOffs(562, 170)
                         .addBox(-0.6F, -0.6F, 0.0F, 1.1F, 1.1F, 3.0F),
                 PartPose.offsetAndRotation(0.0F, -1.0F, 3.8F, -0.60F, 0.00F, 0.00F));
         PartDefinition legBrHeel = legBrFoot.addOrReplaceChild("leg_br_heel",
-                CubeListBuilder.create().texOffs(666, 170).mirror()
+                CubeListBuilder.create().texOffs(571, 170).mirror()
                         .addBox(-0.6F, -0.6F, 0.0F, 1.1F, 1.1F, 3.0F),
                 PartPose.offsetAndRotation(-0.0F, -1.0F, 3.8F, -0.60F, -0.00F, -0.00F));
         PartDefinition saddle = body.addOrReplaceChild("saddle",
@@ -469,49 +469,49 @@ public final class DragonRig {
                         .addBox(-5.2F, -5.2F, -1.6F, 10.4F, 10.4F, 10.6F),
                 PartPose.offsetAndRotation(0.0F, -2.4F, 15.4F, -0.16F, 0.00F, 0.00F));
         PartDefinition tail1Spike = tail1.addOrReplaceChild("tail1_spike",
-                CubeListBuilder.create().texOffs(169, 170)
-                        .addBox(-0.7F, -0.3F, -3.0F, 1.4F, 4.0F, 6.6F),
-                PartPose.offsetAndRotation(0.0F, 5.3F, 2.2F, 0.25F, 0.00F, 0.00F));
+                CubeListBuilder.create().texOffs(529, 170)
+                        .addBox(-0.5F, 0.0F, -2.4F, 1.0F, 3.2F, 1.6F),
+                PartPose.offsetAndRotation(0.0F, 5.0F, 2.0F, 0.55F, 0.00F, 0.00F));
         PartDefinition tail2 = tail1.addOrReplaceChild("tail2",
                 CubeListBuilder.create().texOffs(129, 103)
                         .addBox(-4.5F, -4.5F, -1.6F, 9.0F, 9.0F, 10.0F),
                 PartPose.offsetAndRotation(0.0F, 0.0F, 7.6F, -0.05F, 0.00F, 0.00F));
         PartDefinition tail2Spike = tail2.addOrReplaceChild("tail2_spike",
-                CubeListBuilder.create().texOffs(186, 170)
-                        .addBox(-0.7F, -0.3F, -3.0F, 1.4F, 4.0F, 6.6F),
-                PartPose.offsetAndRotation(0.0F, 4.6F, 2.2F, 0.25F, 0.00F, 0.00F));
+                CubeListBuilder.create().texOffs(580, 170)
+                        .addBox(-0.5F, 0.0F, -2.4F, 1.0F, 2.8F, 1.6F),
+                PartPose.offsetAndRotation(0.0F, 4.3F, 2.0F, 0.55F, 0.00F, 0.00F));
         PartDefinition tail3 = tail2.addOrReplaceChild("tail3",
                 CubeListBuilder.create().texOffs(406, 103)
                         .addBox(-3.8F, -3.8F, -1.6F, 7.6F, 7.6F, 9.4F),
                 PartPose.offset(0.0F, 0.0F, 7.0F));
         PartDefinition tail3Spike = tail3.addOrReplaceChild("tail3_spike",
-                CubeListBuilder.create().texOffs(203, 170)
-                        .addBox(-0.7F, -0.3F, -3.0F, 1.4F, 4.0F, 6.6F),
-                PartPose.offsetAndRotation(0.0F, 3.9F, 2.2F, 0.25F, 0.00F, 0.00F));
+                CubeListBuilder.create().texOffs(663, 170)
+                        .addBox(-0.5F, 0.0F, -2.4F, 1.0F, 2.3F, 1.6F),
+                PartPose.offsetAndRotation(0.0F, 3.6F, 2.0F, 0.55F, 0.00F, 0.00F));
         PartDefinition tail4 = tail3.addOrReplaceChild("tail4",
                 CubeListBuilder.create().texOffs(734, 103)
                         .addBox(-3.1F, -3.1F, -1.6F, 6.2F, 6.2F, 8.8F),
                 PartPose.offsetAndRotation(0.0F, 0.0F, 6.4F, 0.05F, 0.00F, 0.00F));
         PartDefinition tail4Spike = tail4.addOrReplaceChild("tail4_spike",
-                CubeListBuilder.create().texOffs(220, 170)
-                        .addBox(-0.7F, -0.3F, -3.0F, 1.4F, 4.0F, 6.6F),
-                PartPose.offsetAndRotation(0.0F, 3.2F, 2.2F, 0.25F, 0.00F, 0.00F));
+                CubeListBuilder.create().texOffs(710, 170)
+                        .addBox(-0.5F, 0.0F, -2.4F, 1.0F, 1.9F, 1.6F),
+                PartPose.offsetAndRotation(0.0F, 2.9F, 2.0F, 0.55F, 0.00F, 0.00F));
         PartDefinition tail5 = tail4.addOrReplaceChild("tail5",
                 CubeListBuilder.create().texOffs(249, 135)
                         .addBox(-2.4F, -2.4F, -1.6F, 4.8F, 4.8F, 8.2F),
                 PartPose.offsetAndRotation(0.0F, 0.0F, 5.8F, 0.09F, 0.00F, 0.00F));
         PartDefinition tail5Spike = tail5.addOrReplaceChild("tail5_spike",
-                CubeListBuilder.create().texOffs(237, 170)
-                        .addBox(-0.7F, -0.3F, -3.0F, 1.4F, 4.0F, 6.6F),
-                PartPose.offsetAndRotation(0.0F, 2.5F, 2.2F, 0.25F, 0.00F, 0.00F));
+                CubeListBuilder.create().texOffs(759, 170)
+                        .addBox(-0.5F, 0.0F, -2.4F, 1.0F, 1.6F, 1.6F),
+                PartPose.offsetAndRotation(0.0F, 2.2F, 2.0F, 0.55F, 0.00F, 0.00F));
         PartDefinition tail6 = tail5.addOrReplaceChild("tail6",
                 CubeListBuilder.create().texOffs(682, 135)
                         .addBox(-1.7F, -1.7F, -1.6F, 3.4F, 3.4F, 7.4F),
                 PartPose.offsetAndRotation(0.0F, 0.0F, 5.2F, 0.12F, 0.00F, 0.00F));
         PartDefinition tail6Spike = tail6.addOrReplaceChild("tail6_spike",
-                CubeListBuilder.create().texOffs(254, 170)
-                        .addBox(-0.7F, -0.3F, -3.0F, 1.4F, 4.0F, 6.6F),
-                PartPose.offsetAndRotation(0.0F, 1.8F, 2.2F, 0.25F, 0.00F, 0.00F));
+                CubeListBuilder.create().texOffs(766, 170)
+                        .addBox(-0.5F, 0.0F, -2.4F, 1.0F, 1.6F, 1.6F),
+                PartPose.offsetAndRotation(0.0F, 1.5F, 2.0F, 0.55F, 0.00F, 0.00F));
         PartDefinition tail7 = tail6.addOrReplaceChild("tail7",
                 CubeListBuilder.create().texOffs(840, 135)
                         .addBox(-1.2F, -1.2F, -1.6F, 2.4F, 2.4F, 6.6F),
@@ -525,11 +525,11 @@ public final class DragonRig {
                         .addBox(-0.9F, 0.0F, 0.0F, 1.8F, 3.2F, 6.6F),
                 PartPose.offsetAndRotation(0.0F, 0.2F, 5.8F, 0.06F, 0.00F, 0.00F));
         PartDefinition spadeLeft = tail7.addOrReplaceChild("spade_left",
-                CubeListBuilder.create().texOffs(631, 170)
+                CubeListBuilder.create().texOffs(536, 170)
                         .addBox(-0.3F, -0.6F, 0.0F, 0.7F, 1.2F, 5.2F),
                 PartPose.offsetAndRotation(0.8F, 0.0F, 5.2F, 0.00F, 0.00F, -0.72F));
         PartDefinition spadeRight = tail7.addOrReplaceChild("spade_right",
-                CubeListBuilder.create().texOffs(644, 170).mirror()
+                CubeListBuilder.create().texOffs(549, 170).mirror()
                         .addBox(-0.3F, -0.6F, 0.0F, 0.7F, 1.2F, 5.2F),
                 PartPose.offsetAndRotation(-0.8F, 0.0F, 5.2F, 0.00F, -0.00F, 0.72F));
         PartDefinition wingL = body.addOrReplaceChild("wing_l",
@@ -588,11 +588,11 @@ public final class DragonRig {
                         .addBox(0.0F, -0.7F, -0.7F, 11.5F, 1.4F, 1.4F),
                 PartPose.offsetAndRotation(0.0F, 0.0F, 0.0F, -0.20F, -0.86F, -0.15F));
         PartDefinition wingLF5b = wingLF5a.addOrReplaceChild("wing_l_f5b",
-                CubeListBuilder.create().texOffs(321, 170)
+                CubeListBuilder.create().texOffs(219, 170)
                         .addBox(0.0F, -0.6F, -0.6F, 8.0F, 1.1F, 1.1F),
                 PartPose.offsetAndRotation(11.5F, 0.0F, 0.0F, 0.32F, 0.00F, 0.00F));
         PartDefinition wingLTipclaw = wingLF1b.addOrReplaceChild("wing_l_tipclaw",
-                CubeListBuilder.create().texOffs(613, 170)
+                CubeListBuilder.create().texOffs(511, 170)
                         .addBox(0.0F, -0.6F, -0.6F, 3.0F, 1.2F, 1.2F),
                 PartPose.offset(14.0F, 0.0F, 0.0F));
         PartDefinition wingLM1 = wingLHand.addOrReplaceChild("wing_l_m1",
@@ -675,11 +675,11 @@ public final class DragonRig {
                         .addBox(-11.5F, -0.7F, -0.7F, 11.5F, 1.4F, 1.4F),
                 PartPose.offsetAndRotation(-0.0F, 0.0F, 0.0F, -0.20F, 0.86F, 0.15F));
         PartDefinition wingRF5b = wingRF5a.addOrReplaceChild("wing_r_f5b",
-                CubeListBuilder.create().texOffs(340, 170).mirror()
+                CubeListBuilder.create().texOffs(238, 170).mirror()
                         .addBox(-8.0F, -0.6F, -0.6F, 8.0F, 1.1F, 1.1F),
                 PartPose.offsetAndRotation(-11.5F, 0.0F, 0.0F, 0.32F, -0.00F, -0.00F));
         PartDefinition wingRTipclaw = wingRF1b.addOrReplaceChild("wing_r_tipclaw",
-                CubeListBuilder.create().texOffs(622, 170).mirror()
+                CubeListBuilder.create().texOffs(520, 170).mirror()
                         .addBox(-3.0F, -0.6F, -0.6F, 3.0F, 1.2F, 1.2F),
                 PartPose.offset(-14.0F, 0.0F, 0.0F));
         PartDefinition wingRM1 = wingRHand.addOrReplaceChild("wing_r_m1",
