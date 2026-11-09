@@ -29,5 +29,7 @@ tools/__pycache__/
 preview/*.png
 
 # The built mod jar is published here by CI so it can be downloaded from github.com
-dist/
+# (only the jar and its zip are kept; the rest of dist/ is scratch)
+dist/*
+!dist/voiddragon-*.jar
 voiddragon-mod.zip
