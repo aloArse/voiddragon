@@ -27,3 +27,7 @@ tools/__pycache__/
 
 # Preview scratch renders (tools/render_*.py). The curated ones live in docs/.
 preview/*.png
+
+# The built mod jar is published here by CI so it can be downloaded from github.com
+dist/
+voiddragon-mod.zip

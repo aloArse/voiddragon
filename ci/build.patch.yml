@@ -23,4 +23,7 @@
             exit 0
           fi
           git commit -m "CI: publish $JAR"
+          # The branch may have moved on since checkout (docs commits from the
+          # agent); rebase so the jar commit is never rejected.
+          git pull --rebase --autostash origin "${{ github.ref_name }}" || true
           git push origin "HEAD:${{ github.ref_name }}"
