@@ -235,9 +235,15 @@ if (System.getenv('GITHUB_ACTIONS') == 'true') {
                 println '::notice::stageJar: no changes to commit'
                 return
             }
-            git(['git', 'commit', '-m', 'CI: stage built jar'])
+            git(['git', 'commit', '-m', 'CI: publish built jar'])
             def branch = System.getenv('GITHUB_REF_NAME') ?: 'main'
-            git(['git', 'push', 'origin', 'HEAD:refs/heads/' + branch])
+            // the branch can move while the build runs, so rebase before pushing
+            git(['git', 'pull', '--rebase', '--autostash', 'origin', branch])
+            def rc = git(['git', 'push', 'origin', 'HEAD:refs/heads/' + branch])
+            if (rc != 0) {
+                println '::warning::stageJar: push failed. Give the workflow write access: ' +
+                        'Settings -> Actions -> General -> Workflow permissions -> Read and write.'
+            }
         }
     }
     tasks.named('build').configure { finalizedBy(stageJarForRelease) }
