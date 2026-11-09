@@ -144,12 +144,17 @@ public class VoidDragonEntity extends TamableAnimal {
     private static final EntityDataAccessor<Integer> DATA_PORTAL_CD =
             SynchedEntityData.defineId(VoidDragonEntity.class, EntityDataSerializers.INT);
 
-    /** Violet that decays into black: the signature "shadow" particle. */
+    /**
+     * Ember that cools into soot: the signature "dragonfire" particle. It matches
+     * the crimson/orange palette of the model, so the breath, the rush and the
+     * roar all read as one creature breathing heat rather than three effects
+     * bolted together.
+     */
     private static final DustColorTransitionOptions SHADOW_DUST = new DustColorTransitionOptions(
-            new Vector3f(0.52F, 0.09F, 0.92F), new Vector3f(0.02F, 0.0F, 0.07F), 1.8F);
-    /** Pale teal-white magic used for healing / hatching. */
+            new Vector3f(1.0F, 0.42F, 0.12F), new Vector3f(0.16F, 0.03F, 0.02F), 1.9F);
+    /** Pale gold sparks used for healing / hatching. */
     private static final DustColorTransitionOptions VOID_SPARK = new DustColorTransitionOptions(
-            new Vector3f(0.75F, 0.55F, 1.0F), new Vector3f(0.15F, 0.05F, 0.35F), 1.1F);
+            new Vector3f(1.0F, 0.82F, 0.45F), new Vector3f(0.42F, 0.12F, 0.02F), 1.2F);
 
     // ---------------------------------------------------------------- server state
 
@@ -822,7 +827,7 @@ public class VoidDragonEntity extends TamableAnimal {
                 1, 0, 0, 0, 0);
         sl.sendParticles(VOID_SPARK, getX(), getY() + this.getBbHeight() * 0.5D, getZ(),
                 80, 1.6D, 1.2D, 1.6D, 0.1D);
-        sl.sendParticles(ParticleTypes.REVERSE_PORTAL, getX(), getY() + this.getBbHeight() * 0.5D, getZ(),
+        sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + this.getBbHeight() * 0.5D, getZ(),
                 60, 1.2D, 1.0D, 1.2D, 0.4D);
         if (getStage().abilityTier >= 2 && player instanceof net.minecraft.server.level.ServerPlayer sp) {
             ModTriggers.DRAGON_GROWN.get().trigger(sp);
@@ -1053,7 +1058,7 @@ public class VoidDragonEntity extends TamableAnimal {
             double r = radius * (0.25D + ring * 0.2D);
             for (int i = 0; i < 64; i++) {
                 double a = i * (Math.PI * 2.0D / 64.0D) + ring * 0.2D;
-                sl.sendParticles(ParticleTypes.PORTAL, c.x + Math.cos(a) * r, getY() + 0.3D + ring * 0.9D,
+                sl.sendParticles(ParticleTypes.SMALL_FLAME, c.x + Math.cos(a) * r, getY() + 0.3D + ring * 0.9D,
                         c.z + Math.sin(a) * r, 0, -Math.cos(a), 0.05D, -Math.sin(a), 2.2D);
             }
         }
@@ -1068,7 +1073,7 @@ public class VoidDragonEntity extends TamableAnimal {
         float next = Mth.clamp(current + delta, MIN_SIZE_MULT, MAX_SIZE_MULT);
         setSizeOverride(next);
         if (this.level() instanceof ServerLevel sl) {
-            sl.sendParticles(ParticleTypes.REVERSE_PORTAL, getX(), getY() + this.getBbHeight() * 0.5D, getZ(),
+            sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + this.getBbHeight() * 0.5D, getZ(),
                     20, 0.6D, 0.6D, 0.6D, 0.2D);
         }
     }
@@ -1117,8 +1122,8 @@ public class VoidDragonEntity extends TamableAnimal {
         this.hurtMarked = true;
         this.playSound(SoundEvents.ENDER_DRAGON_GROWL, 2.5F, 0.8F);
         if (this.level() instanceof ServerLevel sl) {
-            sl.sendParticles(ParticleTypes.REVERSE_PORTAL, getX(), getY() + 0.3D, getZ(), 60, 1.8D, 0.2D, 1.8D, 0.35D);
-            sl.sendParticles(ParticleTypes.SQUID_INK, getX(), getY() + 0.3D, getZ(), 25, 1.8D, 0.2D, 1.8D, 0.2D);
+            sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 0.3D, getZ(), 60, 1.8D, 0.2D, 1.8D, 0.35D);
+            sl.sendParticles(ParticleTypes.LARGE_SMOKE, getX(), getY() + 0.3D, getZ(), 25, 1.8D, 0.2D, 1.8D, 0.2D);
         }
     }
 
@@ -1150,15 +1155,15 @@ public class VoidDragonEntity extends TamableAnimal {
         sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ENDER_DRAGON_SHOOT, SoundSource.NEUTRAL, 2.0F, 0.6F);
         sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ENDERMAN_TELEPORT, SoundSource.NEUTRAL, 2.0F, 0.5F);
         Vec3 c = this.position().add(0.0D, this.getBbHeight() * 0.5D, 0.0D);
-        sl.sendParticles(ParticleTypes.REVERSE_PORTAL, c.x, c.y, c.z, 90, 1.2D, 0.9D, 1.2D, 0.5D);
+        sl.sendParticles(ParticleTypes.FLAME, c.x, c.y, c.z, 90, 1.2D, 0.9D, 1.2D, 0.5D);
         sl.sendParticles(SHADOW_DUST, c.x, c.y, c.z, 40, 1.3D, 1.0D, 1.3D, 0.0D);
     }
 
     private void rushTick(ServerLevel sl) {
         Vec3 c = this.position().add(0.0D, this.getBbHeight() * 0.5D, 0.0D);
         sl.sendParticles(SHADOW_DUST, c.x, c.y, c.z, 14, 1.0D, 0.8D, 1.0D, 0.0D);
-        sl.sendParticles(ParticleTypes.PORTAL, c.x, c.y, c.z, 14, 1.1D, 0.9D, 1.1D, 0.9D);
-        sl.sendParticles(ParticleTypes.SQUID_INK, c.x, c.y, c.z, 4, 0.9D, 0.7D, 0.9D, 0.04D);
+        sl.sendParticles(ParticleTypes.SMALL_FLAME, c.x, c.y, c.z, 14, 1.1D, 0.9D, 1.1D, 0.9D);
+        sl.sendParticles(ParticleTypes.LARGE_SMOKE, c.x, c.y, c.z, 4, 0.9D, 0.7D, 0.9D, 0.04D);
 
         LivingEntity rider = this.getControllingPassenger();
         LivingEntity attacker = rider != null ? rider : this;
@@ -1218,11 +1223,11 @@ public class VoidDragonEntity extends TamableAnimal {
             double height = 0.4D + ring * 0.8D;
             for (int i = 0; i < count; i++) {
                 double a = i * (Math.PI * 2.0D / count) + ring * 0.35D;
-                sl.sendParticles(ParticleTypes.PORTAL, c.x, getY() + height, c.z, 0,
+                sl.sendParticles(ParticleTypes.SMALL_FLAME, c.x, getY() + height, c.z, 0,
                         Math.cos(a), 0.0D, Math.sin(a), 7.0D + ring * 2.5D);
             }
         }
-        sl.sendParticles(ParticleTypes.REVERSE_PORTAL, c.x, c.y, c.z, 140, 0.6D, 0.6D, 0.6D, 0.9D);
+        sl.sendParticles(ParticleTypes.FLAME, c.x, c.y, c.z, 140, 0.6D, 0.6D, 0.6D, 0.9D);
         sl.sendParticles(SHADOW_DUST, c.x, c.y, c.z, 70, 3.0D, 1.2D, 3.0D, 0.0D);
         sl.sendParticles(ParticleTypes.SONIC_BOOM, c.x, c.y, c.z, 1, 0, 0, 0, 0);
     }
@@ -1257,7 +1262,7 @@ public class VoidDragonEntity extends TamableAnimal {
 
         this.portalCooldown = scaleCooldown(600);
         Vec3 origin = this.position().add(0.0D, this.getBbHeight() * 0.5D, 0.0D);
-        sl.sendParticles(ParticleTypes.REVERSE_PORTAL, origin.x, origin.y, origin.z, 120, 1.0D, 1.2D, 1.0D, 0.7D);
+        sl.sendParticles(ParticleTypes.FLAME, origin.x, origin.y, origin.z, 120, 1.0D, 1.2D, 1.0D, 0.7D);
         sl.sendParticles(SHADOW_DUST, origin.x, origin.y, origin.z, 60, 1.2D, 1.2D, 1.2D, 0.0D);
         sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ENDERMAN_TELEPORT, SoundSource.NEUTRAL, 2.5F, 0.6F);
 
@@ -1272,7 +1277,7 @@ public class VoidDragonEntity extends TamableAnimal {
         this.hurtMarked = true;
 
         Vec3 arrival = dest.add(0.0D, this.getBbHeight() * 0.5D, 0.0D);
-        sl.sendParticles(ParticleTypes.REVERSE_PORTAL, arrival.x, arrival.y, arrival.z, 120, 1.0D, 1.2D, 1.0D, 0.7D);
+        sl.sendParticles(ParticleTypes.FLAME, arrival.x, arrival.y, arrival.z, 120, 1.0D, 1.2D, 1.0D, 0.7D);
         sl.sendParticles(ParticleTypes.SONIC_BOOM, arrival.x, arrival.y, arrival.z, 1, 0, 0, 0, 0);
         sl.playSound(null, dest.x, dest.y, dest.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.NEUTRAL, 2.5F, 1.1F);
     }
@@ -1294,8 +1299,8 @@ public class VoidDragonEntity extends TamableAnimal {
         this.hurtMarked = true;
         this.getNavigation().stop();
         this.setOrderedToSit(true);
-        level.sendParticles(ParticleTypes.REVERSE_PORTAL, origin.x, origin.y, origin.z, 60, 1.0D, 1.0D, 1.0D, 0.4D);
-        level.sendParticles(ParticleTypes.REVERSE_PORTAL, spot.x, spot.y + this.getBbHeight() * 0.5D, spot.z,
+        level.sendParticles(ParticleTypes.FLAME, origin.x, origin.y, origin.z, 60, 1.0D, 1.0D, 1.0D, 0.4D);
+        level.sendParticles(ParticleTypes.FLAME, spot.x, spot.y + this.getBbHeight() * 0.5D, spot.z,
                 60, 1.0D, 1.0D, 1.0D, 0.4D);
         level.playSound(null, spot.x, spot.y, spot.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.NEUTRAL, 1.6F, 0.8F);
         return true;
@@ -1365,10 +1370,10 @@ public class VoidDragonEntity extends TamableAnimal {
             double spread = (0.08D + d * 0.028D) * thickness;
             sl.sendParticles(SHADOW_DUST, p.x, p.y, p.z, 2, spread, spread, spread, 0.0D);
             if (this.random.nextInt(3) == 0) {
-                sl.sendParticles(ParticleTypes.PORTAL, p.x, p.y, p.z, 2, spread, spread, spread, 0.3D);
+                sl.sendParticles(ParticleTypes.SMALL_FLAME, p.x, p.y, p.z, 2, spread, spread, spread, 0.3D);
             }
             if (this.random.nextInt(6) == 0) {
-                sl.sendParticles(ParticleTypes.SQUID_INK, p.x, p.y, p.z, 1, spread, spread, spread, 0.03D);
+                sl.sendParticles(ParticleTypes.LARGE_SMOKE, p.x, p.y, p.z, 1, spread, spread, spread, 0.03D);
             }
             if (VoidDragonConfig.INSTANCE.voidBreathBreaksBlocks.get() && this.random.nextInt(4) == 0) {
                 BlockPos pos = BlockPos.containing(p);
@@ -1381,8 +1386,8 @@ public class VoidDragonEntity extends TamableAnimal {
 
         Vec3 tip = origin.add(dir.scale(len));
         if (hitBlock) {
-            sl.sendParticles(ParticleTypes.PORTAL, tip.x, tip.y, tip.z, 10, 0.6D, 0.6D, 0.6D, 0.8D);
-            sl.sendParticles(ParticleTypes.SQUID_INK, tip.x, tip.y, tip.z, 4, 0.5D, 0.5D, 0.5D, 0.08D);
+            sl.sendParticles(ParticleTypes.SMALL_FLAME, tip.x, tip.y, tip.z, 10, 0.6D, 0.6D, 0.6D, 0.8D);
+            sl.sendParticles(ParticleTypes.LARGE_SMOKE, tip.x, tip.y, tip.z, 4, 0.5D, 0.5D, 0.5D, 0.08D);
             sl.sendParticles(SHADOW_DUST, tip.x, tip.y, tip.z, 6, 0.6D, 0.6D, 0.6D, 0.0D);
             if (this.tickCount % 8 == 0) {
                 sl.playSound(null, tip.x, tip.y, tip.z, SoundEvents.DRAGON_FIREBALL_EXPLODE, SoundSource.HOSTILE, 0.8F, 0.5F);
@@ -1501,7 +1506,7 @@ public class VoidDragonEntity extends TamableAnimal {
         if (this.tickCount % 20 == 0 && this.getHealth() < this.getMaxHealth()
                 && sl.getMaxLocalRawBrightness(this.blockPosition()) <= 4) {
             this.heal(2.0F + getGrowth());
-            sl.sendParticles(ParticleTypes.SCULK_SOUL, getX(), getY() + this.getBbHeight() * 0.6D, getZ(),
+            sl.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, getX(), getY() + this.getBbHeight() * 0.6D, getZ(),
                     3, 0.8D, 0.8D, 0.8D, 0.02D);
         }
 
@@ -1538,9 +1543,9 @@ public class VoidDragonEntity extends TamableAnimal {
                 this.followTeleportCooldown = 100;
                 Vec3 safe = findSafeSpot(sl, owner.position());
                 if (safe != null) {
-                    sl.sendParticles(ParticleTypes.REVERSE_PORTAL, getX(), getY() + 1.0D, getZ(), 40, 1.0D, 1.0D, 1.0D, 0.4D);
+                    sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 1.0D, getZ(), 40, 1.0D, 1.0D, 1.0D, 0.4D);
                     this.teleportTo(safe.x, safe.y, safe.z);
-                    sl.sendParticles(ParticleTypes.REVERSE_PORTAL, getX(), getY() + 1.0D, getZ(), 40, 1.0D, 1.0D, 1.0D, 0.4D);
+                    sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 1.0D, getZ(), 40, 1.0D, 1.0D, 1.0D, 0.4D);
                     this.playSound(SoundEvents.ENDERMAN_TELEPORT, 1.4F, 0.7F);
                 }
             }
@@ -1563,22 +1568,24 @@ public class VoidDragonEntity extends TamableAnimal {
         double sz = Math.sin(yaw);
         float scale = getScale();
 
-        // Void aura: portal motes drifting around the whole body.
+        // Ember aura: two motes of heat drifting off the hide at a time. Kept
+        // deliberately cheap -- this runs every tick on a phone.
         for (int i = 0; i < 2; i++) {
-            this.level().addParticle(ParticleTypes.PORTAL, this.getRandomX(0.9D * scale), this.getRandomY(),
+            this.level().addParticle(i == 0 ? ParticleTypes.SMALL_FLAME : SHADOW_DUST,
+                    this.getRandomX(0.9D * scale), this.getRandomY(),
                     this.getRandomZ(0.9D * scale),
-                    (this.random.nextDouble() - 0.5D) * 0.6D, (this.random.nextDouble() - 0.5D) * 0.6D,
-                    (this.random.nextDouble() - 0.5D) * 0.6D);
+                    (this.random.nextDouble() - 0.5D) * 0.25D, 0.02D + this.random.nextDouble() * 0.05D,
+                    (this.random.nextDouble() - 0.5D) * 0.25D);
         }
 
-        // Shadow tail trail.
+        // Ember trail off the tail.
         if (this.tickCount % 2 == 0) {
             double tx = this.getX() - fx * 2.8D * scale + (this.random.nextDouble() - 0.5D) * 0.4D;
             double tz = this.getZ() - fz * 2.8D * scale + (this.random.nextDouble() - 0.5D) * 0.4D;
             this.level().addParticle(SHADOW_DUST, tx, this.getY() + 0.8D * scale + this.random.nextDouble() * 0.5D,
                     tz, 0.0D, 0.01D, 0.0D);
             if (this.tickCount % 6 == 0) {
-                this.level().addParticle(ParticleTypes.SQUID_INK, tx, this.getY() + 0.9D * scale, tz, 0.0D, 0.02D, 0.0D);
+                this.level().addParticle(ParticleTypes.LARGE_SMOKE, tx, this.getY() + 0.9D * scale, tz, 0.0D, 0.02D, 0.0D);
             }
         }
 
@@ -1592,7 +1599,7 @@ public class VoidDragonEntity extends TamableAnimal {
                 double wy = this.getY() + 1.8D * scale + flapY;
                 this.level().addParticle(SHADOW_DUST, wx, wy, wz, 0.0D, -0.02D, 0.0D);
                 if (this.tickCount % 3 == 0) {
-                    this.level().addParticle(ParticleTypes.REVERSE_PORTAL, wx, wy, wz, 0.0D, -0.03D, 0.0D);
+                    this.level().addParticle(ParticleTypes.FLAME, wx, wy, wz, 0.0D, -0.03D, 0.0D);
                 }
             }
         }
@@ -1629,8 +1636,8 @@ public class VoidDragonEntity extends TamableAnimal {
         }
         boolean result = super.hurt(source, amount);
         if (result && this.level() instanceof ServerLevel sl) {
-            sl.sendParticles(ParticleTypes.SQUID_INK, getX(), getY() + 1.4D, getZ(), 10, 0.9D, 0.8D, 0.9D, 0.08D);
-            sl.sendParticles(ParticleTypes.PORTAL, getX(), getY() + 1.4D, getZ(), 12, 0.9D, 0.8D, 0.9D, 0.6D);
+            sl.sendParticles(ParticleTypes.LARGE_SMOKE, getX(), getY() + 1.4D, getZ(), 10, 0.9D, 0.8D, 0.9D, 0.08D);
+            sl.sendParticles(ParticleTypes.SMALL_FLAME, getX(), getY() + 1.4D, getZ(), 12, 0.9D, 0.8D, 0.9D, 0.6D);
             // A hurt dragon fights back — and grows a little stronger for it.
             if (source.getEntity() instanceof LivingEntity attacker && canHit(attacker)) {
                 this.setTarget(attacker);
@@ -1734,12 +1741,12 @@ public class VoidDragonEntity extends TamableAnimal {
     protected void tickDeath() {
         if (this.level() instanceof ServerLevel sl) {
             if (this.deathTime % 2 == 0) {
-                sl.sendParticles(ParticleTypes.PORTAL, getX(), getY() + 1.4D, getZ(), 0,
+                sl.sendParticles(ParticleTypes.SMALL_FLAME, getX(), getY() + 1.4D, getZ(), 0,
                         this.random.nextGaussian(), this.random.nextGaussian() * 0.5D, this.random.nextGaussian(), 4.0D);
-                sl.sendParticles(ParticleTypes.SQUID_INK, getX(), getY() + 1.4D, getZ(), 6, 1.2D, 0.8D, 1.2D, 0.05D);
+                sl.sendParticles(ParticleTypes.LARGE_SMOKE, getX(), getY() + 1.4D, getZ(), 6, 1.2D, 0.8D, 1.2D, 0.05D);
             }
             if (this.deathTime == 19) {
-                sl.sendParticles(ParticleTypes.REVERSE_PORTAL, getX(), getY() + 1.4D, getZ(), 220, 0.5D, 0.5D, 0.5D, 1.0D);
+                sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 1.4D, getZ(), 220, 0.5D, 0.5D, 0.5D, 1.0D);
                 sl.sendParticles(SHADOW_DUST, getX(), getY() + 1.4D, getZ(), 120, 2.5D, 1.4D, 2.5D, 0.0D);
                 sl.sendParticles(ParticleTypes.SONIC_BOOM, getX(), getY() + 1.4D, getZ(), 1, 0, 0, 0, 0);
             }
