@@ -16,7 +16,7 @@
 |---|---|
 | ![زره](docs/dragon_gear.png) | ![روبرو](docs/dragon_front.png) |
 
-> این تصاویر با رندرر آفلاین خودِ پروژه (`tools/render_preview.py`) مستقیماً از همان مدل و تکسچری ساخته شده‌اند که در بازی استفاده می‌شود.
+> این تصاویر با رندرر آفلاین خودِ پروژه (`tools/render_textured.py`) مستقیماً از همان مدل و تکسچری ساخته شده‌اند که در بازی استفاده می‌شود.
 
 ---
 
@@ -198,10 +198,11 @@ gradle build            # خروجی: build/libs/voiddragon-1.0.0.jar
 
 | ابزار | کار |
 |---|---|
-| `tools/dragon_spec.py` | تنها منبع حقیقت هندسهٔ اژدها (۶۹ مکعب) |
-| `tools/gen_model.py` | از spec، کلاس جاوا `DragonRig.java` و UVها را می‌سازد |
-| `tools/gen_textures.py` | تکسچر ۵۱۲×۵۱۲ (اژدها، زره، زین، آیتم‌ها، آیکون HUD) را می‌کشد |
-| `tools/render_preview.py` | رندرر آفلاین برای دیدن مدل بدون اجرای بازی |
+| `tools/dragon_spec.py` | تنها منبع حقیقت هندسهٔ اژدها (۱۶۹ مکعب) و حالت‌های بال |
+| `tools/gen_model.py` | از spec، `DragonRig.java` (هندسه)، `DragonPose.java` (لنگرهای انیمیشن بال) و UVها را می‌سازد |
+| `tools/gen_textures.py` | تکسچر ۱۰۲۴×۱۰۲۴ (پوست دوده‌ای، بال اُخرایی، شاخ استخوانی، زره، زین، آیتم‌ها، آیکون HUD) و لایهٔ درخشان را می‌کشد |
+| `tools/render_textured.py` | رندرر آفلاین با همان UV واقعی بازی (پیش‌نمایش رنگی) |
+| `tools/render_simple.py` | رندرر ساده و بی‌بافت برای بررسی فرم و تناسبات |
 | `tools/pack_source.sh` | آرشیو `voiddragon-source.zip` را که ورک‌فلوی CI از آن build می‌کند همگام می‌کند |
 
 ```
